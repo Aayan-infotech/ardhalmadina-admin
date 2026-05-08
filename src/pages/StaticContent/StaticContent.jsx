@@ -177,14 +177,7 @@ export default function StaticContent() {
         )}
       </div>
 
-      <div className="info-footer">
-        <div className="info-text">
-          <FaInfoCircle className="info-icon" />
-          <span>
-            Content is saved to the server. HTML formatting is supported.
-          </span>
-        </div>
-      </div>
+     
     </div>
   );
 }

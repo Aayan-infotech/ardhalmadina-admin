@@ -391,10 +391,6 @@ useEffect(() => {
           </div>
         )}
       </div>
-
-<<<<<<< HEAD
-     
-=======
       {/* Footer Info */}
       <div className="info-footer">
         <div className="info-text">
@@ -404,7 +400,6 @@ useEffect(() => {
           </span>
         </div>
       </div>
->>>>>>> afd8585 (new changes)
     </div>
   );
 }

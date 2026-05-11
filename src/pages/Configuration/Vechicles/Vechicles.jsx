@@ -124,30 +124,6 @@ export default function VehicleManagement() {
   const fetchVehicles = async () => {
     try {
       setLoading(true);
-<<<<<<< HEAD
-      
-      let url = `/listings/public/listings?`;
-      const params = new URLSearchParams();
-      
-      if (categoryFilter !== "all") {
-        params.append("listingCategory", categoryFilter);
-      }
-      
-      if (listingTypeFilter !== "all") {
-        params.append("listingType", listingTypeFilter);
-      }
-      
-      if (statusFilter !== "all") {
-        params.append("status", statusFilter);
-      }
-      
-      if (debouncedSearchTerm) {
-        params.append("search", debouncedSearchTerm);
-      }
-      
-      url += params.toString();
-      
-=======
 
       let url = `/listings/admin/listings?`;
       const params = new URLSearchParams();
@@ -170,13 +146,12 @@ export default function VehicleManagement() {
 
       url += params.toString();
 
->>>>>>> afd8585 (new changes)
       const response = await axiosInstance.get(url);
       const result = response.data;
 
       if (result.success) {
         let allItems = [];
-        
+
         if (categoryFilter === "all") {
           allItems = [
             ...(result.data?.vehicle || []),
@@ -188,16 +163,11 @@ export default function VehicleManagement() {
         }
 
         const transformedListings = allItems.map((listing) => {
-<<<<<<< HEAD
-          let dailyRate = 0, weeklyRate = 0, monthlyRate = 0, sellingPrice = 0;
-          
-=======
           let dailyRate = 0,
             weeklyRate = 0,
             monthlyRate = 0,
             sellingPrice = 0;
 
->>>>>>> afd8585 (new changes)
           if (listing.listingType === "rent") {
             dailyRate = listing.rentDetails?.dailyRate || 0;
             weeklyRate = listing.rentDetails?.weeklyRate || 0;
@@ -206,12 +176,8 @@ export default function VehicleManagement() {
             sellingPrice = listing.sellDetails?.sellingPrice || 0;
           }
 
-<<<<<<< HEAD
-          let lat = 28.7041, lng = 77.1025;
-=======
           let lat = 28.7041,
             lng = 77.1025;
->>>>>>> afd8585 (new changes)
           if (listing.location?.coordinates) {
             lng = listing.location.coordinates[0];
             lat = listing.location.coordinates[1];
@@ -228,24 +194,16 @@ export default function VehicleManagement() {
               color: listing.vehicleData.color,
               vehicleType: listing.vehicleData.vehicleType,
               registration: listing.vehicleData.registration,
-<<<<<<< HEAD
-              technicalSpecifications: listing.vehicleData.technicalSpecifications,
-=======
               technicalSpecifications:
                 listing.vehicleData.technicalSpecifications,
->>>>>>> afd8585 (new changes)
               features: listing.vehicleData.features,
               availability: listing.vehicleData.availability,
               delivery: listing.vehicleData.delivery,
             };
-<<<<<<< HEAD
-          } else if (listing.listingCategory === "machinery" && listing.machineryData) {
-=======
           } else if (
             listing.listingCategory === "machinery" &&
             listing.machineryData
           ) {
->>>>>>> afd8585 (new changes)
             categorySpecificData = {
               brand: listing.machineryData.brand,
               model: listing.machineryData.model,
@@ -254,13 +212,6 @@ export default function VehicleManagement() {
               condition: listing.machineryData.condition,
               machineType: listing.machineryData.machineType,
               serialNumber: listing.machineryData.serialNumber,
-<<<<<<< HEAD
-              technicalSpecifications: listing.machineryData.technicalSpecifications,
-              features: listing.machineryData.features,
-              maintenance: listing.machineryData.maintenance,
-            };
-          } else if (listing.listingCategory === "equipment" && listing.equipmentData) {
-=======
               technicalSpecifications:
                 listing.machineryData.technicalSpecifications,
               features: listing.machineryData.features,
@@ -270,7 +221,6 @@ export default function VehicleManagement() {
             listing.listingCategory === "equipment" &&
             listing.equipmentData
           ) {
->>>>>>> afd8585 (new changes)
             categorySpecificData = {
               brand: listing.equipmentData.brand,
               model: listing.equipmentData.model,
@@ -299,10 +249,6 @@ export default function VehicleManagement() {
             photos: listing.photos || [],
             coordinates: [lng, lat],
             listingCategory: listing.listingCategory || "equipment",
-<<<<<<< HEAD
-            categoryId: typeof listing.categoryId === "object" ? listing.categoryId._id : listing.categoryId,
-            categoryName: typeof listing.categoryId === "object" ? listing.categoryId.name : "",
-=======
             categoryId:
               typeof listing.categoryId === "object"
                 ? listing.categoryId._id
@@ -311,7 +257,6 @@ export default function VehicleManagement() {
               typeof listing.categoryId === "object"
                 ? listing.categoryId.name
                 : "",
->>>>>>> afd8585 (new changes)
             userId: listing.userId,
             ...categorySpecificData,
           };
@@ -337,11 +282,7 @@ export default function VehicleManagement() {
     setUploading(true);
     try {
       const formDataToSend = new FormData();
-<<<<<<< HEAD
-      
-=======
 
->>>>>>> afd8585 (new changes)
       formDataToSend.append("name", formData.name);
       formDataToSend.append("description", formData.description);
       formDataToSend.append("addressLine", formData.addressLine);
@@ -349,11 +290,7 @@ export default function VehicleManagement() {
       formDataToSend.append("uniqueCode", formData.uniqueCode);
       formDataToSend.append("categoryId", formData.categoryId);
       formDataToSend.append("listingType", formData.listingType);
-<<<<<<< HEAD
-      
-=======
 
->>>>>>> afd8585 (new changes)
       if (formData.listingType === "rent") {
         formDataToSend.append("dailyRate", formData.dailyRate);
         formDataToSend.append("weeklyRate", formData.weeklyRate);
@@ -361,16 +298,6 @@ export default function VehicleManagement() {
       } else {
         formDataToSend.append("sellingPrice", formData.sellingPrice);
       }
-<<<<<<< HEAD
-      
-      selectedFiles.forEach((file) => {
-        formDataToSend.append("photos", file);
-      });
-
-      const response = await axiosInstance.put(`/listings/update/${selectedItem.id}`, formDataToSend, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-=======
 
       selectedFiles.forEach((file) => {
         formDataToSend.append("photos", file);
@@ -383,7 +310,6 @@ export default function VehicleManagement() {
           headers: { "Content-Type": "multipart/form-data" },
         },
       );
->>>>>>> afd8585 (new changes)
 
       if (response.data?.success) {
         toast.success("Equipment updated successfully!");
@@ -402,18 +328,12 @@ export default function VehicleManagement() {
 
   const updateListingStatus = async (listingId, newStatus) => {
     try {
-<<<<<<< HEAD
-      const response = await axiosInstance.patch(`/listings/updateStatus/${listingId}`, {
-        status: newStatus,
-      });
-=======
       const response = await axiosInstance.patch(
         `/listings/updateStatus/${listingId}`,
         {
           status: newStatus,
         },
       );
->>>>>>> afd8585 (new changes)
       if (response.data?.success) {
         toast.success(`Status updated to ${getStatusDisplay(newStatus)}`);
         fetchVehicles();
@@ -497,23 +417,23 @@ export default function VehicleManagement() {
   };
 
   const filteredItems = items.filter(
-    (item) => statusFilter === "all" || item.status === statusFilter
+    (item) => statusFilter === "all" || item.status === statusFilter,
   );
   const totalItems = filteredItems.length;
   const availableCount = filteredItems.filter(
-    (v) => v.status === "active"
+    (v) => v.status === "active",
   ).length;
   const inUseCount = filteredItems.filter(
-    (v) => v.status === "inactive"
+    (v) => v.status === "inactive",
   ).length;
   const blockedCount = filteredItems.filter(
-    (v) => v.status === "blocked"
+    (v) => v.status === "blocked",
   ).length;
 
   const totalPages = Math.ceil(filteredItems.length / perPage);
   const currentItems = filteredItems.slice(
     (currentPage - 1) * perPage,
-    currentPage * perPage
+    currentPage * perPage,
   );
 
   useEffect(() => {
@@ -534,17 +454,6 @@ export default function VehicleManagement() {
         <>
           {(item.brand || item.model || item.variant) && (
             <div className="details-section">
-<<<<<<< HEAD
-              <h4><FaCog /> Vehicle Information</h4>
-              <div className="details-grid">
-                {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
-                {item.model && <div><strong>Model:</strong> {item.model}</div>}
-                {item.variant && <div><strong>Variant:</strong> {item.variant}</div>}
-                {item.manufacturingYear && <div><strong>Year:</strong> {item.manufacturingYear}</div>}
-                {item.condition && <div><strong>Condition:</strong> {item.condition}</div>}
-                {item.color && <div><strong>Color:</strong> {item.color}</div>}
-                {item.vehicleType && <div><strong>Vehicle Type:</strong> {item.vehicleType}</div>}
-=======
               <h4>
                 <FaCog /> Vehicle Information
               </h4>
@@ -584,37 +493,10 @@ export default function VehicleManagement() {
                     <strong>Vehicle Type:</strong> {item.vehicleType}
                   </div>
                 )}
->>>>>>> afd8585 (new changes)
               </div>
             </div>
           )}
 
-<<<<<<< HEAD
-          {item.technicalSpecifications && Object.keys(item.technicalSpecifications).length > 0 && (
-            <div className="details-section">
-              <h4><FaTachometerAlt /> Technical Specifications</h4>
-              <div className="details-grid">
-                {item.technicalSpecifications.fuelType && <div><FaGasPump /> <strong>Fuel Type:</strong> {item.technicalSpecifications.fuelType}</div>}
-                {item.technicalSpecifications.engineCapacity && <div><FaCog /> <strong>Engine Capacity:</strong> {item.technicalSpecifications.engineCapacity}</div>}
-                {item.technicalSpecifications.horsepower && <div><FaBolt /> <strong>Horsepower:</strong> {item.technicalSpecifications.horsepower}</div>}
-                {item.technicalSpecifications.transmission && <div><FaCog /> <strong>Transmission:</strong> {item.technicalSpecifications.transmission}</div>}
-                {item.technicalSpecifications.driveType && <div><FaRoad /> <strong>Drive Type:</strong> {item.technicalSpecifications.driveType}</div>}
-                {item.technicalSpecifications.mileage && <div><FaTachometerAlt /> <strong>Mileage:</strong> {Number(item.technicalSpecifications.mileage).toLocaleString()} km</div>}
-                {item.technicalSpecifications.loadCapacity && <div><FaWeightHanging /> <strong>Load Capacity:</strong> {item.technicalSpecifications.loadCapacity}</div>}
-                {item.technicalSpecifications.seatingCapacity && <div><strong>Seating Capacity:</strong> {item.technicalSpecifications.seatingCapacity}</div>}
-              </div>
-            </div>
-          )}
-
-          {item.registration && Object.keys(item.registration).length > 0 && (
-            <div className="details-section">
-              <h4><FaIdCard /> Registration Details</h4>
-              <div className="details-grid">
-                {item.registration.plateNumber && <div><strong>Plate Number:</strong> {item.registration.plateNumber}</div>}
-                {item.registration.registrationNumber && <div><strong>Registration No:</strong> {item.registration.registrationNumber}</div>}
-                {item.registration.mulkiyaExpiryDate && <div><FaCalendarAlt /> <strong>Mulkiya Expiry:</strong> {new Date(item.registration.mulkiyaExpiryDate).toLocaleDateString()}</div>}
-                {item.registration.insuranceExpiryDate && <div><FaShieldAlt /> <strong>Insurance Expiry:</strong> {new Date(item.registration.insuranceExpiryDate).toLocaleDateString()}</div>}
-=======
           {item.technicalSpecifications &&
             Object.keys(item.technicalSpecifications).length > 0 && (
               <div className="details-section">
@@ -711,23 +593,12 @@ export default function VehicleManagement() {
                     ).toLocaleDateString()}
                   </div>
                 )}
->>>>>>> afd8585 (new changes)
               </div>
             </div>
           )}
 
           {item.features && Object.keys(item.features).length > 0 && (
             <div className="details-section">
-<<<<<<< HEAD
-              <h4><FaCheckCircle /> Features</h4>
-              <div className="features-list">
-                {item.features.airConditioning && <span className="feature-tag">❄️ Air Conditioning</span>}
-                {item.features.gpsTracking && <span className="feature-tag">📍 GPS Tracking</span>}
-                {item.features.reverseCamera && <span className="feature-tag">📹 Reverse Camera</span>}
-                {item.features.bluetooth && <span className="feature-tag">🎵 Bluetooth</span>}
-                {item.features.fuelIncluded && <span className="feature-tag">⛽ Fuel Included</span>}
-                {item.features.operatorIncluded && <span className="feature-tag">👨‍✈️ Operator Included</span>}
-=======
               <h4>
                 <FaCheckCircle /> Features
               </h4>
@@ -750,7 +621,6 @@ export default function VehicleManagement() {
                 {item.features.operatorIncluded && (
                   <span className="feature-tag">👨‍✈️ Operator Included</span>
                 )}
->>>>>>> afd8585 (new changes)
               </div>
             </div>
           )}
@@ -761,17 +631,6 @@ export default function VehicleManagement() {
         <>
           {(item.brand || item.model || item.machineType) && (
             <div className="details-section">
-<<<<<<< HEAD
-              <h4><FaCog /> Machinery Information</h4>
-              <div className="details-grid">
-                {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
-                {item.model && <div><strong>Model:</strong> {item.model}</div>}
-                {item.variant && <div><strong>Variant:</strong> {item.variant}</div>}
-                {item.manufacturingYear && <div><strong>Year:</strong> {item.manufacturingYear}</div>}
-                {item.condition && <div><strong>Condition:</strong> {item.condition}</div>}
-                {item.machineType && <div><strong>Machine Type:</strong> {item.machineType}</div>}
-                {item.serialNumber && <div><strong>Serial No:</strong> {item.serialNumber}</div>}
-=======
               <h4>
                 <FaCog /> Machinery Information
               </h4>
@@ -811,35 +670,10 @@ export default function VehicleManagement() {
                     <strong>Serial No:</strong> {item.serialNumber}
                   </div>
                 )}
->>>>>>> afd8585 (new changes)
               </div>
             </div>
           )}
 
-<<<<<<< HEAD
-          {item.technicalSpecifications && Object.keys(item.technicalSpecifications).length > 0 && (
-            <div className="details-section">
-              <h4><FaTachometerAlt /> Technical Specifications</h4>
-              <div className="details-grid">
-                {item.technicalSpecifications.enginePower && <div><FaBolt /> <strong>Engine Power:</strong> {item.technicalSpecifications.enginePower}</div>}
-                {item.technicalSpecifications.operatingWeight && <div><FaWeightHanging /> <strong>Operating Weight:</strong> {item.technicalSpecifications.operatingWeight}</div>}
-                {item.technicalSpecifications.bucketCapacity && <div><strong>Bucket Capacity:</strong> {item.technicalSpecifications.bucketCapacity}</div>}
-                {item.technicalSpecifications.workingHeight && <div><FaRulerCombined /> <strong>Working Height:</strong> {item.technicalSpecifications.workingHeight}</div>}
-                {item.technicalSpecifications.workingDepth && <div><strong>Working Depth:</strong> {item.technicalSpecifications.workingDepth}</div>}
-                {item.technicalSpecifications.loadCapacity && <div><FaWeightHanging /> <strong>Load Capacity:</strong> {item.technicalSpecifications.loadCapacity}</div>}
-              </div>
-            </div>
-          )}
-
-          {item.maintenance && Object.keys(item.maintenance).length > 0 && (
-            <div className="details-section">
-              <h4><FaWrench /> Maintenance Details</h4>
-              <div className="details-grid">
-                {item.maintenance.workingHoursUsed && <div><strong>Working Hours:</strong> {Number(item.maintenance.workingHoursUsed).toLocaleString()} hrs</div>}
-                {item.maintenance.lastServiceDate && <div><FaCalendarWeek /> <strong>Last Service:</strong> {new Date(item.maintenance.lastServiceDate).toLocaleDateString()}</div>}
-                {item.maintenance.nextServiceDate && <div><FaCalendarAlt /> <strong>Next Service:</strong> {new Date(item.maintenance.nextServiceDate).toLocaleDateString()}</div>}
-                {item.maintenance.maintenanceStatus && <div><strong>Status:</strong> {item.maintenance.maintenanceStatus}</div>}
-=======
           {item.technicalSpecifications &&
             Object.keys(item.technicalSpecifications).length > 0 && (
               <div className="details-section">
@@ -922,7 +756,6 @@ export default function VehicleManagement() {
                     {item.maintenance.maintenanceStatus}
                   </div>
                 )}
->>>>>>> afd8585 (new changes)
               </div>
             </div>
           )}
@@ -933,14 +766,6 @@ export default function VehicleManagement() {
         <>
           {(item.brand || item.model || item.equipmentType) && (
             <div className="details-section">
-<<<<<<< HEAD
-              <h4><FaCog /> Equipment Information</h4>
-              <div className="details-grid">
-                {item.brand && <div><strong>Brand:</strong> {item.brand}</div>}
-                {item.model && <div><strong>Model:</strong> {item.model}</div>}
-                {item.condition && <div><strong>Condition:</strong> {item.condition}</div>}
-                {item.equipmentType && <div><strong>Equipment Type:</strong> {item.equipmentType}</div>}
-=======
               <h4>
                 <FaCog /> Equipment Information
               </h4>
@@ -965,29 +790,10 @@ export default function VehicleManagement() {
                     <strong>Equipment Type:</strong> {item.equipmentType}
                   </div>
                 )}
->>>>>>> afd8585 (new changes)
               </div>
             </div>
           )}
 
-<<<<<<< HEAD
-          {item.specifications && Object.keys(item.specifications).length > 0 && (
-            <div className="details-section">
-              <h4><FaDatabase /> Specifications</h4>
-              <div className="details-grid">
-                {item.specifications.power && <div><FaBolt /> <strong>Power:</strong> {item.specifications.power}</div>}
-                {item.specifications.capacity && <div><strong>Capacity:</strong> {item.specifications.capacity}</div>}
-                {item.specifications.weight && <div><FaWeightHanging /> <strong>Weight:</strong> {item.specifications.weight}</div>}
-              </div>
-            </div>
-          )}
-
-          {item.quantity && item.quantity.availableUnits && (
-            <div className="details-section">
-              <h4><FaBoxes /> Inventory</h4>
-              <div className="details-grid">
-                <div><strong>Available Units:</strong> {item.quantity.availableUnits}</div>
-=======
           {item.specifications &&
             Object.keys(item.specifications).length > 0 && (
               <div className="details-section">
@@ -1026,7 +832,6 @@ export default function VehicleManagement() {
                   <strong>Available Units:</strong>{" "}
                   {item.quantity.availableUnits}
                 </div>
->>>>>>> afd8585 (new changes)
               </div>
             </div>
           )}
@@ -1127,35 +932,45 @@ export default function VehicleManagement() {
           <div className="filters-title">
             <FaFilter /> <span>Filters</span>
           </div>
-<<<<<<< HEAD
-          {(statusFilter !== "all" || categoryFilter !== "all" || listingTypeFilter !== "all" || searchTerm) && (
-=======
           {(statusFilter !== "all" ||
             categoryFilter !== "all" ||
             listingTypeFilter !== "all" ||
             searchTerm) && (
->>>>>>> afd8585 (new changes)
             <button className="clear-filters-btn" onClick={clearAllFilters}>
               <FaTimes /> Clear All
             </button>
           )}
         </div>
         <div className="filters-grid">
-          <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className="filter-select">
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="filter-select"
+          >
             <option value="all">All Categories</option>
             <option value="vehicle">Vehicles</option>
             <option value="machinery">Machinery</option>
             <option value="equipment">Equipment</option>
           </select>
-          <select value={listingTypeFilter} onChange={(e) => setListingTypeFilter(e.target.value)} className="filter-select">
+          <select
+            value={listingTypeFilter}
+            onChange={(e) => setListingTypeFilter(e.target.value)}
+            className="filter-select"
+          >
             <option value="all">All Types</option>
             <option value="rent">For Rent</option>
             <option value="sell">For Sale</option>
           </select>
-          <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="filter-select">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="filter-select"
+          >
             <option value="all">All Status</option>
             {vehicleStatuses.map((s) => (
-              <option key={s} value={s}>{getStatusDisplay(s)}</option>
+              <option key={s} value={s}>
+                {getStatusDisplay(s)}
+              </option>
             ))}
           </select>
         </div>
@@ -1189,7 +1004,11 @@ export default function VehicleManagement() {
                       <td>
                         <div style={{ display: "flex", alignItems: "center" }}>
                           {item.photos?.[0] && (
-                            <img src={item.photos[0]} alt={item.name} style={imageStyles.thumbnail} />
+                            <img
+                              src={item.photos[0]}
+                              alt={item.name}
+                              style={imageStyles.thumbnail}
+                            />
                           )}
                           <div>
                             <div className="material-name">{item.name}</div>
@@ -1203,19 +1022,6 @@ export default function VehicleManagement() {
                       </td>
                       <td>
                         <span className="category-tag">
-<<<<<<< HEAD
-                          {item.listingCategory?.charAt(0).toUpperCase() + item.listingCategory?.slice(1) || "Equipment"}
-                        </span>
-                      </td>
-                      <td>
-                        <div>{item.vehicleType || item.machineType || item.equipmentType || "N/A"}</div>
-                        {item.model && <div style={{ fontSize: "11px", color: "#666" }}>{item.model}</div>}
-                      </td>
-                      <td>
-                        {item.listingType === "rent" ? `₹${item.dailyRate.toLocaleString()}/day` : `₹${item.sellingPrice.toLocaleString()}`}
-                        {item.listingType === "rent" && item.weeklyRate > 0 && (
-                          <div style={{ fontSize: "11px", color: "#666" }}>Week: ₹{item.weeklyRate.toLocaleString()}</div>
-=======
                           {item.listingCategory?.charAt(0).toUpperCase() +
                             item.listingCategory?.slice(1) || "Equipment"}
                         </span>
@@ -1241,7 +1047,6 @@ export default function VehicleManagement() {
                           <div style={{ fontSize: "11px", color: "#666" }}>
                             Week: ₹{item.weeklyRate.toLocaleString()}
                           </div>
->>>>>>> afd8585 (new changes)
                         )}
                       </td>
                       <td>{item.companyName || "N/A"}</td>
@@ -1255,25 +1060,35 @@ export default function VehicleManagement() {
                               setSelectedItem(item);
                               setShowViewModal(true);
                             }}
-                            style={{ background: "none", border: "none", cursor: "pointer", marginRight: "8px" }}
+                            style={{
+                              background: "none",
+                              border: "none",
+                              cursor: "pointer",
+                              marginRight: "8px",
+                            }}
                           >
                             <FaEye />
                           </button>
                         </div>
                         <select
-<<<<<<< HEAD
-                          onChange={(e) => updateListingStatus(item.id, e.target.value)}
-=======
                           onChange={(e) =>
                             updateListingStatus(item.id, e.target.value)
                           }
->>>>>>> afd8585 (new changes)
                           value={item.status}
                           className="status-select"
-                          style={{ marginTop: "8px", width: "100%", padding: "4px", fontSize: "12px", borderRadius: "4px", border: "1px solid #ddd" }}
+                          style={{
+                            marginTop: "8px",
+                            width: "100%",
+                            padding: "4px",
+                            fontSize: "12px",
+                            borderRadius: "4px",
+                            border: "1px solid #ddd",
+                          }}
                         >
                           {vehicleStatuses.map((s) => (
-                            <option key={s} value={s}>{getStatusDisplay(s)}</option>
+                            <option key={s} value={s}>
+                              {getStatusDisplay(s)}
+                            </option>
                           ))}
                         </select>
                       </td>
@@ -1281,28 +1096,53 @@ export default function VehicleManagement() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="9" style={{ textAlign: "center", padding: "40px" }}>No equipment found</td>
+                    <td
+                      colSpan="9"
+                      style={{ textAlign: "center", padding: "40px" }}
+                    >
+                      No equipment found
+                    </td>
                   </tr>
                 )}
               </tbody>
             </table>
             {totalPages > 1 && (
-              <div className="pagination" style={{ display: "flex", justifyContent: "flex-end", gap: "8px", marginTop: "20px" }}>
-                <button disabled={currentPage === 1} onClick={() => setCurrentPage((p) => p - 1)} style={{ padding: "8px 12px", border: "1px solid #ddd", background: "white", cursor: currentPage === 1 ? "not-allowed" : "pointer" }}>
+              <div
+                className="pagination"
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: "8px",
+                  marginTop: "20px",
+                }}
+              >
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                  style={{
+                    padding: "8px 12px",
+                    border: "1px solid #ddd",
+                    background: "white",
+                    cursor: currentPage === 1 ? "not-allowed" : "pointer",
+                  }}
+                >
                   Previous
                 </button>
                 {[...Array(totalPages)].map((_, i) => (
                   <button
                     key={i}
                     onClick={() => setCurrentPage(i + 1)}
-                    style={{ padding: "8px 12px", border: "1px solid #ddd", background: currentPage === i + 1 ? "#2c8769" : "white", color: currentPage === i + 1 ? "white" : "black", cursor: "pointer" }}
+                    style={{
+                      padding: "8px 12px",
+                      border: "1px solid #ddd",
+                      background: currentPage === i + 1 ? "#2c8769" : "white",
+                      color: currentPage === i + 1 ? "white" : "black",
+                      cursor: "pointer",
+                    }}
                   >
                     {i + 1}
                   </button>
                 ))}
-<<<<<<< HEAD
-                <button disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => p + 1)} style={{ padding: "8px 12px", border: "1px solid #ddd", background: "white", cursor: currentPage === totalPages ? "not-allowed" : "pointer" }}>
-=======
                 <button
                   disabled={currentPage === totalPages}
                   onClick={() => setCurrentPage((p) => p + 1)}
@@ -1314,7 +1154,6 @@ export default function VehicleManagement() {
                       currentPage === totalPages ? "not-allowed" : "pointer",
                   }}
                 >
->>>>>>> afd8585 (new changes)
                   Next
                 </button>
               </div>
@@ -1325,13 +1164,6 @@ export default function VehicleManagement() {
 
       {/* View Modal */}
       {showViewModal && selectedItem && (
-<<<<<<< HEAD
-        <div className="modal-overlay" onClick={() => setShowViewModal(false)} style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(0,0,0,0.5)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-          <div className="modal-content large" onClick={(e) => e.stopPropagation()} style={{ maxWidth: "900px", width: "90%", background: "white", borderRadius: "12px", maxHeight: "90vh", overflow: "auto" }}>
-            <div className="modal-header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px", borderBottom: "1px solid #eee", position: "sticky", top: 0, background: "white", zIndex: 1 }}>
-              <h3><FaInfoCircle /> Equipment Details</h3>
-              <button className="close-btn" onClick={() => setShowViewModal(false)} style={{ background: "none", border: "none", fontSize: "20px", cursor: "pointer" }}>
-=======
         <div
           className="modal-overlay"
           onClick={() => setShowViewModal(false)}
@@ -1387,18 +1219,10 @@ export default function VehicleManagement() {
                   cursor: "pointer",
                 }}
               >
->>>>>>> afd8585 (new changes)
                 <FaTimes />
               </button>
             </div>
             <div className="modal-body" style={{ padding: "20px" }}>
-<<<<<<< HEAD
-              <div style={{ display: "flex", gap: "20px", marginBottom: "20px", alignItems: "center", flexWrap: "wrap" }}>
-                {selectedItem.photos?.[0] ? (
-                  <img src={selectedItem.photos[0]} alt={selectedItem.name} style={{ width: "120px", height: "120px", objectFit: "cover", borderRadius: "12px" }} />
-                ) : (
-                  <div style={{ width: "120px", height: "120px", background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: "48px", fontWeight: "bold", borderRadius: "12px", color: "white" }}>
-=======
               <div
                 style={{
                   display: "flex",
@@ -1435,18 +1259,10 @@ export default function VehicleManagement() {
                       color: "white",
                     }}
                   >
->>>>>>> afd8585 (new changes)
                     {selectedItem.name?.charAt(0).toUpperCase()}
                   </div>
                 )}
                 <div style={{ flex: 1 }}>
-<<<<<<< HEAD
-                  <h2 style={{ margin: 0, color: "#333" }}>{selectedItem.name}</h2>
-                  <p style={{ margin: "8px 0", color: "#666" }}><strong>ID:</strong> {selectedItem.id}</p>
-                  <p style={{ margin: "5px 0", color: "#666" }}><strong>Code:</strong> {selectedItem.registrationNo}</p>
-                  <p style={{ margin: "5px 0", color: "#666" }}><strong>Company:</strong> {selectedItem.companyName || "N/A"}</p>
-                  {selectedItem.userId?.email && <p style={{ margin: "5px 0", color: "#666" }}><strong>Listed By:</strong> {selectedItem.userId.email}</p>}
-=======
                   <h2 style={{ margin: 0, color: "#333" }}>
                     {selectedItem.name}
                   </h2>
@@ -1465,20 +1281,11 @@ export default function VehicleManagement() {
                       <strong>Listed By:</strong> {selectedItem.userId.email}
                     </p>
                   )}
->>>>>>> afd8585 (new changes)
                 </div>
                 <div>{getStatusBadge(selectedItem.status)}</div>
               </div>
 
               <div className="details-section">
-<<<<<<< HEAD
-                <h4><FaInfoCircle /> Basic Information</h4>
-                <div className="details-grid">
-                  <div><strong>Category:</strong> {selectedItem.listingCategory?.charAt(0).toUpperCase() + selectedItem.listingCategory?.slice(1)}</div>
-                  <div><strong>Listing Type:</strong> {selectedItem.listingType === "rent" ? "For Rent" : "For Sale"}</div>
-                  <div><strong>Location:</strong> <FaMapMarkerAlt /> {selectedItem.location || "N/A"}</div>
-                  <div><strong>Created:</strong> <FaCalendarAlt /> {selectedItem.createdAt}</div>
-=======
                 <h4>
                   <FaInfoCircle /> Basic Information
                 </h4>
@@ -1502,7 +1309,6 @@ export default function VehicleManagement() {
                     <strong>Created:</strong> <FaCalendarAlt />{" "}
                     {selectedItem.createdAt}
                   </div>
->>>>>>> afd8585 (new changes)
                 </div>
               </div>
 
@@ -1511,14 +1317,6 @@ export default function VehicleManagement() {
                 <div className="details-grid">
                   {selectedItem.listingType === "rent" ? (
                     <>
-<<<<<<< HEAD
-                      <div><strong>Daily Rate:</strong> ₹{selectedItem.dailyRate?.toLocaleString()}/day</div>
-                      {selectedItem.weeklyRate > 0 && <div><strong>Weekly Rate:</strong> ₹{selectedItem.weeklyRate?.toLocaleString()}/week</div>}
-                      {selectedItem.monthlyRate > 0 && <div><strong>Monthly Rate:</strong> ₹{selectedItem.monthlyRate?.toLocaleString()}/month</div>}
-                    </>
-                  ) : (
-                    <div><strong>Selling Price:</strong> ₹{selectedItem.sellingPrice?.toLocaleString()}</div>
-=======
                       <div>
                         <strong>Daily Rate:</strong> ₹
                         {selectedItem.dailyRate?.toLocaleString()}/day
@@ -1541,7 +1339,6 @@ export default function VehicleManagement() {
                       <strong>Selling Price:</strong> ₹
                       {selectedItem.sellingPrice?.toLocaleString()}
                     </div>
->>>>>>> afd8585 (new changes)
                   )}
                 </div>
               </div>
@@ -1549,13 +1346,9 @@ export default function VehicleManagement() {
               {selectedItem.description && (
                 <div className="details-section">
                   <h4>Description</h4>
-<<<<<<< HEAD
-                  <p style={{ lineHeight: "1.6", color: "#555" }}>{selectedItem.description}</p>
-=======
                   <p style={{ lineHeight: "1.6", color: "#555" }}>
                     {selectedItem.description}
                   </p>
->>>>>>> afd8585 (new changes)
                 </div>
               )}
 
@@ -1564,11 +1357,6 @@ export default function VehicleManagement() {
               {selectedItem.photos?.length > 0 && (
                 <div className="details-section">
                   <h4>Image Gallery</h4>
-<<<<<<< HEAD
-                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap", marginTop: "10px" }}>
-                    {selectedItem.photos.map((p, i) => (
-                      <img key={i} src={p} alt={`Gallery ${i + 1}`} style={imageStyles.gallery} onClick={() => window.open(p)} />
-=======
                   <div
                     style={{
                       display: "flex",
@@ -1585,16 +1373,11 @@ export default function VehicleManagement() {
                         style={imageStyles.gallery}
                         onClick={() => window.open(p)}
                       />
->>>>>>> afd8585 (new changes)
                     ))}
                   </div>
                 </div>
               )}
             </div>
-<<<<<<< HEAD
-            <div className="modal-footer" style={{ padding: "20px", borderTop: "1px solid #eee", display: "flex", justifyContent: "flex-end", gap: "10px" }}>
-              <button className="btn-secondary" onClick={() => setShowViewModal(false)} style={{ padding: "8px 16px", background: "#6c757d", color: "white", border: "none", borderRadius: "4px", cursor: "pointer" }}>
-=======
             <div
               className="modal-footer"
               style={{
@@ -1617,7 +1400,6 @@ export default function VehicleManagement() {
                   cursor: "pointer",
                 }}
               >
->>>>>>> afd8585 (new changes)
                 Close
               </button>
             </div>

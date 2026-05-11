@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   FaSearch,
   FaEye,
@@ -8,21 +8,39 @@ import {
   FaTrash,
   FaPlus,
   FaBoxes,
-  FaDollarSign,
   FaCheckCircle,
   FaTimesCircle,
-  FaWarehouse,
   FaExclamationTriangle,
   FaFilter,
   FaSortAmountDown,
   FaToggleOn,
   FaToggleOff,
   FaBan,
+  FaMapMarkerAlt,
+  FaLocationArrow,
 } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import "./Addmaterial.css";
 import axiosInstance from "../../../utils/axiosInstance";
+
+// Load Google Maps API script
+const loadGoogleMapsScript = (apiKey) => {
+  return new Promise((resolve, reject) => {
+    if (document.querySelector("#google-maps-script")) {
+      resolve();
+      return;
+    }
+    const script = document.createElement("script");
+    script.id = "google-maps-script";
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+};
 
 export default function MaterialList() {
   const [materials, setMaterials] = useState([]);
@@ -42,14 +60,19 @@ export default function MaterialList() {
   const [updating, setUpdating] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
+  const [fetchingLocation, setFetchingLocation] = useState(false);
+
   const perPage = 5;
+
+  // Refs for Google Maps autocomplete
+  const addressInputRef = useRef(null);
+  const autocompleteRef = useRef(null);
 
   const [formData, setFormData] = useState({
     materialName: "",
     categoryId: "",
     subCategoryId: "",
-    unit: "",
-    quantity: "",
     sellingPrice: "",
     supplierName: "",
     addressLine: "",
@@ -58,6 +81,130 @@ export default function MaterialList() {
     coordinates: "",
     photos: [],
   });
+
+  // =========================
+  // LOAD GOOGLE MAPS
+  // =========================
+  useEffect(() => {
+    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (apiKey) {
+      loadGoogleMapsScript(apiKey)
+        .then(() => {
+          setMapsLoaded(true);
+        })
+        .catch((error) => {
+          console.error("Failed to load Google Maps:", error);
+          toast.warning(
+            "Address autocomplete not available. Please enter coordinates manually.",
+          );
+        });
+    } else {
+      console.warn("Google Maps API key not found");
+      toast.warning(
+        "Address autocomplete not configured. Please enter coordinates manually.",
+      );
+    }
+  }, []);
+
+  // Initialize autocomplete when maps are loaded and modal opens
+  useEffect(() => {
+    if (
+      mapsLoaded &&
+      (showAddModal || showEditModal) &&
+      addressInputRef.current
+    ) {
+      if (autocompleteRef.current) {
+        google.maps.event.clearInstanceListeners(autocompleteRef.current);
+      }
+
+      autocompleteRef.current = new google.maps.places.Autocomplete(
+        addressInputRef.current,
+        {
+          types: ["address"],
+          componentRestrictions: { country: "in" },
+        },
+      );
+
+      autocompleteRef.current.addListener("place_changed", () => {
+        const place = autocompleteRef.current.getPlace();
+        if (place.geometry) {
+          const lat = place.geometry.location.lat();
+          const lng = place.geometry.location.lng();
+          const coordinates = `${lng},${lat}`;
+
+          setFormData((prev) => ({
+            ...prev,
+            addressLine:
+              place.formatted_address || addressInputRef.current.value,
+            coordinates: coordinates,
+          }));
+
+          toast.success(`Location found: ${coordinates}`);
+        } else {
+          toast.warning("Please select a location from the dropdown");
+        }
+      });
+    }
+  }, [mapsLoaded, showAddModal, showEditModal]);
+
+  // Get current location
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation is not supported by your browser");
+      return;
+    }
+
+    setFetchingLocation(true);
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const { latitude, longitude } = position.coords;
+        const coordinates = `${longitude},${latitude}`;
+        setFormData((prev) => ({
+          ...prev,
+          coordinates: coordinates,
+        }));
+
+        // Reverse geocoding to get address
+        if (mapsLoaded) {
+          const geocoder = new google.maps.Geocoder();
+          const latlng = { lat: latitude, lng: longitude };
+          geocoder.geocode({ location: latlng }, (results, status) => {
+            if (status === "OK" && results[0]) {
+              setFormData((prev) => ({
+                ...prev,
+                addressLine: results[0].formatted_address,
+              }));
+            }
+          });
+        }
+
+        toast.success(`Current location: ${coordinates}`);
+        setFetchingLocation(false);
+      },
+      (error) => {
+        console.error("Error getting location:", error);
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            toast.error("Please allow location access to use this feature");
+            break;
+          case error.POSITION_UNAVAILABLE:
+            toast.error("Location information is unavailable");
+            break;
+          case error.TIMEOUT:
+            toast.error("Location request timed out");
+            break;
+          default:
+            toast.error("Failed to get current location");
+        }
+        setFetchingLocation(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0,
+      },
+    );
+  };
 
   // =========================
   // LOAD CATEGORIES
@@ -154,7 +301,7 @@ export default function MaterialList() {
           const foundCategory = allCategories.find(
             (c) =>
               (c._id || c.id) ===
-              (typeof categoryId === "object" ? categoryId._id : categoryId)
+              (typeof categoryId === "object" ? categoryId._id : categoryId),
           );
           categoryName = foundCategory ? foundCategory.name : "-";
         }
@@ -167,18 +314,14 @@ export default function MaterialList() {
               (s._id || s.id) ===
               (typeof subCategoryId === "object"
                 ? subCategoryId._id
-                : subCategoryId)
+                : subCategoryId),
           );
           subCategoryName = foundSubCategory ? foundSubCategory.name : "-";
         }
 
-        const quantity = material.quantity || 0;
-        let stockStatus = "In Stock";
-        if (quantity === 0) stockStatus = "Out of Stock";
-        else if (quantity < 50) stockStatus = "Low Stock";
-
         const apiStatus = material.status || "active";
-        const price = material.sellDetails?.sellingPrice || material.sellingPrice || 0;
+        const price =
+          material.sellDetails?.sellingPrice || material.sellingPrice || 0;
 
         return {
           id: material._id,
@@ -187,17 +330,16 @@ export default function MaterialList() {
           categoryId: material.categoryId,
           subCategory: subCategoryName,
           subCategoryId: material.subCategoryId,
-          unit: material.unit || "units",
-          quantity: quantity,
           price: price,
           supplier: material.supplierName || "Unknown",
           location: material.addressLine || "Not specified",
-          stockStatus: stockStatus,
           status: apiStatus,
           description: material.description || "",
           listingType: material.listingType || "sell",
           photos: material.photos || [],
-          coordinates: material.coordinates || "",
+          coordinates: material.location?.coordinates
+            ? `${material.location.coordinates[0]},${material.location.coordinates[1]}`
+            : material.coordinates || "",
           createdAt: material.createdAt
             ? new Date(material.createdAt).toLocaleDateString()
             : new Date().toLocaleDateString(),
@@ -214,18 +356,20 @@ export default function MaterialList() {
   };
 
   // =========================
-  // UPDATE MATERIAL STATUS (PATCH - Only status change)
+  // UPDATE MATERIAL STATUS
   // =========================
   const updateMaterialStatus = async (materialId, newStatus) => {
     setUpdatingStatus(true);
     try {
       const response = await axiosInstance.patch(
         `/material/status/${materialId}`,
-        { status: newStatus }
+        { status: newStatus },
       );
 
       if (response.data && response.data.success !== false) {
-        toast.success(`Status updated to ${newStatus === "active" ? "Active" : "Blocked"}`);
+        toast.success(
+          `Status updated to ${newStatus === "active" ? "Active" : "Blocked"}`,
+        );
         await loadMaterials();
       } else {
         toast.error(response.data?.message || "Failed to update status");
@@ -238,28 +382,30 @@ export default function MaterialList() {
     }
   };
 
-  // Toggle status between active and blocked
   const toggleStatus = (materialId, currentStatus) => {
     const newStatus = currentStatus === "active" ? "blocked" : "active";
     updateMaterialStatus(materialId, newStatus);
   };
 
   // =========================
-  // PERMANENT DELETE MATERIAL (DELETE API - No status change)
+  // PERMANENT DELETE MATERIAL
   // =========================
   const handlePermanentDelete = async () => {
     if (!materialToDelete) return;
 
     setDeleting(true);
     try {
-      // PERMANENT DELETE - Material completely removed from database
-      const response = await axiosInstance.delete(`/material/${materialToDelete.id}`);
+      const response = await axiosInstance.delete(
+        `/material/${materialToDelete.id}`,
+      );
 
       if (response.data && response.data.success !== false) {
-        toast.success(`"${materialToDelete.name}" permanently deleted successfully!`);
+        toast.success(
+          `"${materialToDelete.name}" permanently deleted successfully!`,
+        );
         setShowDeleteModal(false);
         setMaterialToDelete(null);
-        await loadMaterials(); // Refresh the list
+        await loadMaterials();
       } else {
         toast.error(response.data?.message || "Failed to delete material");
       }
@@ -278,7 +424,7 @@ export default function MaterialList() {
   };
 
   // =========================
-  // UPDATE MATERIAL (PUT - Update material details)
+  // UPDATE MATERIAL
   // =========================
   const handleUpdateMaterial = async () => {
     if (!selectedMaterial) return;
@@ -308,9 +454,6 @@ export default function MaterialList() {
 
       if (formData.subCategoryId)
         formDataToSend.append("subCategoryId", formData.subCategoryId);
-      if (formData.unit) formDataToSend.append("unit", formData.unit);
-      if (formData.quantity)
-        formDataToSend.append("quantity", formData.quantity);
       if (formData.supplierName)
         formDataToSend.append("supplierName", formData.supplierName);
       if (formData.addressLine)
@@ -319,8 +462,13 @@ export default function MaterialList() {
         formDataToSend.append("description", formData.description);
       if (formData.listingType)
         formDataToSend.append("listingType", formData.listingType);
-      if (formData.coordinates)
-        formDataToSend.append("coordinates", formData.coordinates);
+      if (formData.coordinates) {
+        const coords = formData.coordinates.split(",");
+        if (coords.length === 2) {
+          formDataToSend.append("longitude", coords[0].trim());
+          formDataToSend.append("latitude", coords[1].trim());
+        }
+      }
 
       const newPhotos = formData.photos.filter((p) => p instanceof File);
       newPhotos.forEach((photo) => {
@@ -334,7 +482,7 @@ export default function MaterialList() {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
 
       if (response.data && response.data.success !== false) {
@@ -374,39 +522,12 @@ export default function MaterialList() {
         return;
       }
 
-      if (!formData.quantity && formData.quantity !== 0) {
-        toast.error("Quantity required");
-        return;
-      }
-
-      if (formData.quantity < 0) {
-        toast.error("Quantity cannot be negative");
-        return;
-      }
-
-      let coordinatesToSend = "";
-      if (formData.coordinates && formData.coordinates.trim()) {
-        const trimmedCoordinates = formData.coordinates.trim();
-        const coordinatePattern = /^-?\d+(\.\d+)?,-?\d+(\.\d+)?$/;
-
-        if (!coordinatePattern.test(trimmedCoordinates)) {
-          toast.error(
-            "Coordinates format should be: longitude,latitude (Example: 80.9462,26.8467)"
-          );
-          return;
-        }
-        coordinatesToSend = trimmedCoordinates;
-      }
-
       const formDataToSend = new FormData();
 
       formDataToSend.append("materialName", formData.materialName);
       formDataToSend.append("categoryId", formData.categoryId);
       if (formData.subCategoryId)
         formDataToSend.append("subCategoryId", formData.subCategoryId);
-      if (formData.unit) formDataToSend.append("unit", formData.unit);
-      if (formData.quantity)
-        formDataToSend.append("quantity", formData.quantity);
       formDataToSend.append("sellingPrice", formData.sellingPrice);
       if (formData.supplierName)
         formDataToSend.append("supplierName", formData.supplierName);
@@ -415,8 +536,17 @@ export default function MaterialList() {
       if (formData.description)
         formDataToSend.append("description", formData.description);
       formDataToSend.append("listingType", formData.listingType);
-      if (coordinatesToSend)
-        formDataToSend.append("coordinates", coordinatesToSend);
+
+      if (formData.coordinates && formData.coordinates.trim()) {
+        const coords = formData.coordinates.split(",");
+        if (coords.length === 2) {
+          formDataToSend.append("longitude", coords[0].trim());
+          formDataToSend.append("latitude", coords[1].trim());
+        } else {
+          toast.error("Coordinates format should be: longitude,latitude");
+          return;
+        }
+      }
 
       if (formData.photos && formData.photos.length > 0) {
         formData.photos.forEach((photo) => {
@@ -433,7 +563,7 @@ export default function MaterialList() {
           headers: {
             "Content-Type": "multipart/form-data",
           },
-        }
+        },
       );
 
       if (response.data && response.data.success !== false) {
@@ -459,8 +589,6 @@ export default function MaterialList() {
       materialName: "",
       categoryId: "",
       subCategoryId: "",
-      unit: "",
-      quantity: "",
       sellingPrice: "",
       supplierName: "",
       addressLine: "",
@@ -539,8 +667,6 @@ export default function MaterialList() {
         typeof material.subCategoryId === "object"
           ? material.subCategoryId?._id
           : material.subCategoryId || "",
-      quantity: material.quantity || "",
-      unit: material.unit || "",
       sellingPrice: material.price || "",
       supplierName: material.supplier || "",
       addressLine: material.location || "",
@@ -550,39 +676,6 @@ export default function MaterialList() {
       photos: material.photos?.filter((p) => typeof p === "string") || [],
     });
     setShowEditModal(true);
-  };
-
-  // =========================
-  // GET STOCK STATUS BADGE
-  // =========================
-
-  const getStockStatusBadge = (stockStatus) => {
-    switch (stockStatus) {
-      case "In Stock":
-        return (
-          <span className="badge-status badge-success">
-            <FaCheckCircle /> In Stock
-          </span>
-        );
-      case "Low Stock":
-        return (
-          <span className="badge-status badge-warning">
-            <FaExclamationTriangle /> Low Stock
-          </span>
-        );
-      case "Out of Stock":
-        return (
-          <span className="badge-status badge-danger">
-            <FaTimesCircle /> Out of Stock
-          </span>
-        );
-      default:
-        return (
-          <span className="badge-status badge-secondary">
-            <FaInfoCircle /> {stockStatus}
-          </span>
-        );
-    }
   };
 
   // =========================
@@ -632,7 +725,6 @@ export default function MaterialList() {
     "all",
     ...new Set(materials.map((m) => m.category).filter((c) => c !== "-")),
   ];
-  const statuses = ["all", "active", "inactive", "blocked", "deleted"];
 
   const filteredMaterials = materials.filter((material) => {
     const matchesSearch =
@@ -649,20 +741,8 @@ export default function MaterialList() {
   const totalPages = Math.ceil(filteredMaterials.length / perPage);
   const currentMaterials = filteredMaterials.slice(
     (currentPage - 1) * perPage,
-    currentPage * perPage
+    currentPage * perPage,
   );
-
-  // Stats
-  const totalValue = materials.reduce(
-    (sum, m) => sum + (m.quantity || 0) * (m.price || 0),
-    0
-  );
-  const lowStockCount = materials.filter(
-    (m) => m.stockStatus === "Low Stock"
-  ).length;
-  const inStockCount = materials.filter(
-    (m) => m.stockStatus === "In Stock"
-  ).length;
 
   // =========================
   // INITIAL LOAD
@@ -680,47 +760,6 @@ export default function MaterialList() {
   return (
     <div className="material-page">
       <ToastContainer position="top-right" autoClose={3000} />
-
-      {/* Stats Cards */}
-      <div className="stats-grid">
-        <div className="stat-card">
-          <div className="stat-icon blue">
-            <FaBoxes />
-          </div>
-          <div className="stat-info">
-            <h3>{materials.length}</h3>
-            <p>Total Materials</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon green">
-            <FaDollarSign />
-          </div>
-          <div className="stat-info">
-            <h3>₹{totalValue.toLocaleString()}</h3>
-            <p>Inventory Value</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon orange">
-            <FaWarehouse />
-          </div>
-          <div className="stat-info">
-            <h3>{inStockCount}</h3>
-            <p>In Stock</p>
-          </div>
-        </div>
-        <div className="stat-card">
-          <div className="stat-icon red">
-            <FaExclamationTriangle />
-          </div>
-          <div className="stat-info">
-            <h3>{lowStockCount}</h3>
-            <p>Low Stock Alert</p>
-          </div>
-        </div>
-      </div>
-
       {/* Header */}
       <div className="page-header">
         <div className="header-left">
@@ -859,7 +898,9 @@ export default function MaterialList() {
                         <div className="status-toggle-container">
                           <button
                             className={`small-toggle-btn ${material.status === "active" ? "active" : "blocked"}`}
-                            onClick={() => toggleStatus(material.id, material.status)}
+                            onClick={() =>
+                              toggleStatus(material.id, material.status)
+                            }
                             disabled={updatingStatus}
                             title={
                               material.status === "active"
@@ -988,37 +1029,9 @@ export default function MaterialList() {
                         >
                           {sub.name}
                         </option>
-                      )
+                      ),
                     )}
                   </select>
-                </div>
-                <div className="input-group">
-                  <label>Unit</label>
-                  <select
-                    value={formData.unit}
-                    onChange={(e) =>
-                      setFormData({ ...formData, unit: e.target.value })
-                    }
-                  >
-                    <option value="">Select Unit</option>
-                    <option value="kg">kg</option>
-                    <option value="bags">bags</option>
-                    <option value="tons">tons</option>
-                    <option value="pieces">pieces</option>
-                    <option value="cubic ft">cubic ft</option>
-                    <option value="liters">liters</option>
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label>Quantity *</label>
-                  <input
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) =>
-                      setFormData({ ...formData, quantity: e.target.value })
-                    }
-                    placeholder="Enter quantity"
-                  />
                 </div>
                 <div className="input-group">
                   <label>Selling Price *</label>
@@ -1042,30 +1055,55 @@ export default function MaterialList() {
                     placeholder="Supplier name"
                   />
                 </div>
-                <div className="input-group">
-                  <label>Address</label>
+
+                {/* Address with Google Maps Autocomplete */}
+                <div className="input-group full-width">
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <FaMapMarkerAlt /> Address / Location
+                    <button
+                      type="button"
+                      onClick={getCurrentLocation}
+                      disabled={fetchingLocation}
+                      style={{
+                        marginLeft: "auto",
+                        padding: "4px 12px",
+                        fontSize: "12px",
+                        background: "#28a745",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: fetchingLocation ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
+                    >
+                      <FaLocationArrow />
+                      {fetchingLocation ? "Getting..." : "Get My Location"}
+                    </button>
+                  </label>
                   <input
+                    ref={addressInputRef}
                     type="text"
                     value={formData.addressLine}
                     onChange={(e) =>
                       setFormData({ ...formData, addressLine: e.target.value })
                     }
-                    placeholder="Address"
+                    placeholder="Start typing address or use 'Get My Location' button"
+                    style={{ marginBottom: "8px" }}
                   />
+                  <small style={{ color: "#6c757d", fontSize: "11px" }}>
+                    💡 Tip: Start typing address and select from dropdown to
+                    auto-fill coordinates
+                  </small>
                 </div>
-                <div className="input-group">
-                  <label>Listing Type</label>
-                  <select
-                    value={formData.listingType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, listingType: e.target.value })
-                    }
-                  >
-                    <option value="sell">Sell</option>
-                    <option value="rent">Rent</option>
-                    <option value="lease">Lease</option>
-                  </select>
-                </div>
+
                 <div className="input-group">
                   <label>Coordinates (longitude,latitude)</label>
                   <input
@@ -1076,7 +1114,24 @@ export default function MaterialList() {
                       setFormData({ ...formData, coordinates: e.target.value })
                     }
                   />
+                  <small style={{ color: "#6c757d", fontSize: "11px" }}>
+                    Format: longitude,latitude (e.g., 80.9462,26.8467)
+                  </small>
                 </div>
+
+                <div className="input-group">
+                  <label>Listing Type</label>
+                  <select
+                    value={formData.listingType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, listingType: e.target.value })
+                    }
+                  >
+                    <option value="sell">Sell</option>
+                    <option value="rent">Rent</option>
+                  </select>
+                </div>
+
                 <div className="input-group full-width">
                   <label>Photos</label>
                   <input
@@ -1198,35 +1253,8 @@ export default function MaterialList() {
                         <option key={sub._id} value={sub._id}>
                           {sub.name}
                         </option>
-                      )
+                      ),
                     )}
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label>Quantity</label>
-                  <input
-                    type="number"
-                    value={formData.quantity}
-                    onChange={(e) =>
-                      setFormData({ ...formData, quantity: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Unit</label>
-                  <select
-                    value={formData.unit}
-                    onChange={(e) =>
-                      setFormData({ ...formData, unit: e.target.value })
-                    }
-                  >
-                    <option value="">Select Unit</option>
-                    <option value="bags">bags</option>
-                    <option value="kg">kg</option>
-                    <option value="pieces">pieces</option>
-                    <option value="cubic ft">cubic ft</option>
-                    <option value="liters">liters</option>
-                    <option value="tons">tons</option>
                   </select>
                 </div>
                 <div className="input-group">
@@ -1250,29 +1278,55 @@ export default function MaterialList() {
                     }
                   />
                 </div>
-                <div className="input-group">
-                  <label>Address / Location</label>
+
+                {/* Address with Google Maps Autocomplete - Edit Mode */}
+                <div className="input-group full-width">
+                  <label
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "10px",
+                    }}
+                  >
+                    <FaMapMarkerAlt /> Address / Location
+                    <button
+                      type="button"
+                      onClick={getCurrentLocation}
+                      disabled={fetchingLocation}
+                      style={{
+                        marginLeft: "auto",
+                        padding: "4px 12px",
+                        fontSize: "12px",
+                        background: "#28a745",
+                        color: "white",
+                        border: "none",
+                        borderRadius: "4px",
+                        cursor: fetchingLocation ? "not-allowed" : "pointer",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "5px",
+                      }}
+                    >
+                      <FaLocationArrow />
+                      {fetchingLocation ? "Getting..." : "Get My Location"}
+                    </button>
+                  </label>
                   <input
+                    ref={addressInputRef}
                     type="text"
                     value={formData.addressLine}
                     onChange={(e) =>
                       setFormData({ ...formData, addressLine: e.target.value })
                     }
+                    placeholder="Start typing address or use 'Get My Location' button"
+                    style={{ marginBottom: "8px" }}
                   />
+                  <small style={{ color: "#6c757d", fontSize: "11px" }}>
+                    💡 Tip: Start typing address and select from dropdown to
+                    auto-fill coordinates
+                  </small>
                 </div>
-                <div className="input-group">
-                  <label>Listing Type</label>
-                  <select
-                    value={formData.listingType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, listingType: e.target.value })
-                    }
-                  >
-                    <option value="sell">Sell</option>
-                    <option value="rent">Rent</option>
-                    <option value="lease">Lease</option>
-                  </select>
-                </div>
+
                 <div className="input-group">
                   <label>Coordinates</label>
                   <input
@@ -1284,6 +1338,20 @@ export default function MaterialList() {
                     }
                   />
                 </div>
+
+                <div className="input-group">
+                  <label>Listing Type</label>
+                  <select
+                    value={formData.listingType}
+                    onChange={(e) =>
+                      setFormData({ ...formData, listingType: e.target.value })
+                    }
+                  >
+                    <option value="sell">Sell</option>
+                    <option value="rent">Rent</option>
+                  </select>
+                </div>
+
                 <div className="input-group full-width">
                   <label>Photos</label>
                   <input
@@ -1500,39 +1568,22 @@ export default function MaterialList() {
                       marginBottom: "5px",
                     }}
                   >
-                    Quantity
-                  </label>
-                  <p style={{ margin: 0 }}>
-                    {selectedMaterial.quantity} {selectedMaterial.unit}
-                  </p>
-                </div>
-                <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Unit Price
-                  </label>
-                  <p style={{ margin: 0 }}>
-                    ₹{selectedMaterial.price?.toFixed(2)}
-                  </p>
-                </div>
-                <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
                     Supplier
                   </label>
                   <p style={{ margin: 0 }}>{selectedMaterial.supplier}</p>
+                </div>
+                <div>
+                  <label
+                    style={{
+                      fontWeight: "bold",
+                      color: "#555",
+                      display: "block",
+                      marginBottom: "5px",
+                    }}
+                  >
+                    Price
+                  </label>
+                  <p style={{ margin: 0 }}>₹{selectedMaterial.price}</p>
                 </div>
                 <div>
                   <label
@@ -1556,10 +1607,10 @@ export default function MaterialList() {
                       marginBottom: "5px",
                     }}
                   >
-                    Stock Status
+                    Coordinates
                   </label>
                   <p style={{ margin: 0 }}>
-                    {getStockStatusBadge(selectedMaterial.stockStatus)}
+                    {selectedMaterial.coordinates || "Not provided"}
                   </p>
                 </div>
                 <div>
@@ -1571,7 +1622,7 @@ export default function MaterialList() {
                       marginBottom: "5px",
                     }}
                   >
-                    API Status
+                    Status
                   </label>
                   <p style={{ margin: 0 }}>
                     {getApiStatusBadge(selectedMaterial.status)}
@@ -1590,21 +1641,6 @@ export default function MaterialList() {
                   </label>
                   <p style={{ margin: 0 }}>
                     {selectedMaterial.listingType || "Sell"}
-                  </p>
-                </div>
-                <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Coordinates
-                  </label>
-                  <p style={{ margin: 0 }}>
-                    {selectedMaterial.coordinates || "Not provided"}
                   </p>
                 </div>
                 <div>
@@ -1659,10 +1695,16 @@ export default function MaterialList() {
         </div>
       )}
 
-      {/* PERMANENT DELETE CONFIRMATION MODAL */}
+      {/* Delete Confirmation Modal */}
       {showDeleteModal && materialToDelete && (
-        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
-          <div className="modal-content small" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="modal-overlay"
+          onClick={() => setShowDeleteModal(false)}
+        >
+          <div
+            className="modal-content small"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="modal-header">
               <h3 className="text-danger">
                 <FaTrash /> Permanently Delete Material
@@ -1675,22 +1717,36 @@ export default function MaterialList() {
               </button>
             </div>
             <div className="modal-body text-center">
-              <FaTimesCircle className="delete-warning" style={{ fontSize: "48px", color: "#dc3545", marginBottom: "16px" }} />
+              <FaTimesCircle
+                className="delete-warning"
+                style={{
+                  fontSize: "48px",
+                  color: "#dc3545",
+                  marginBottom: "16px",
+                }}
+              />
               <p>
-                Are you sure you want to <strong style={{ color: "#dc3545" }}>PERMANENTLY DELETE</strong>{" "}
+                Are you sure you want to{" "}
+                <strong style={{ color: "#dc3545" }}>PERMANENTLY DELETE</strong>{" "}
                 <strong>{materialToDelete.name}</strong>?
               </p>
-              <p className="text-muted" style={{ color: "#6c757d", marginTop: "8px" }}>
-                This action cannot be undone. The material will be completely removed from the database.
+              <p
+                className="text-muted"
+                style={{ color: "#6c757d", marginTop: "8px" }}
+              >
+                This action cannot be undone. The material will be completely
+                removed from the database.
               </p>
-              <div style={{ 
-                background: "#fff3cd", 
-                padding: "10px", 
-                borderRadius: "6px", 
-                marginTop: "16px",
-                fontSize: "12px",
-                color: "#856404"
-              }}>
+              <div
+                style={{
+                  background: "#fff3cd",
+                  padding: "10px",
+                  borderRadius: "6px",
+                  marginTop: "16px",
+                  fontSize: "12px",
+                  color: "#856404",
+                }}
+              >
                 ⚠️ Warning: This is permanent deletion, not just status change.
               </div>
             </div>
@@ -1702,8 +1758,8 @@ export default function MaterialList() {
               >
                 Cancel
               </button>
-              <button 
-                className="btn-danger" 
+              <button
+                className="btn-danger"
                 onClick={handlePermanentDelete}
                 disabled={deleting}
                 style={{
@@ -1713,7 +1769,7 @@ export default function MaterialList() {
                   border: "none",
                   borderRadius: "6px",
                   cursor: deleting ? "not-allowed" : "pointer",
-                  opacity: deleting ? 0.7 : 1
+                  opacity: deleting ? 0.7 : 1,
                 }}
               >
                 {deleting ? "Deleting..." : "Yes, Permanently Delete"}

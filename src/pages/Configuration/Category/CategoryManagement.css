@@ -887,3 +887,151 @@
   color: #2e7d32;
   transform: scale(1.15);
 }
+/* Image Preview Styles */
+.image-previews {
+  position: relative;
+  display: inline-block;
+  width: 90px;
+  height: 90px;
+}
+
+.image-previews img {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.remove-image {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 12px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.remove-image:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+/* Image Upload Area */
+.image-upload-container {
+  margin-bottom: 20px;
+}
+
+.image-upload-area {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.image-upload-area:hover {
+  border-color: #667eea;
+  background: #f8f9fa;
+}
+
+.upload-label {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.upload-label svg {
+  font-size: 32px;
+  color: #6c757d;
+}
+
+.upload-label span {
+  font-size: 14px;
+  color: #495057;
+}
+
+.upload-label small {
+  font-size: 12px;
+  color: #6c757d;
+}
+
+/* Table Image Cell */
+.image-cell {
+  width: 70px;
+  text-align: center;
+}
+
+.category-image {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.no-image {
+  width: 50px;
+  height: 50px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #adb5bd;
+  font-size: 20px;
+  border: 1px solid #e9ecef;
+  margin: 0 auto;
+}
+
+/* View Modal Image */
+.view-image {
+  margin-top: 8px;
+}
+
+.view-image img {
+  max-width: 200px;
+  max-height: 200px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive for smaller screens */
+@media (max-width: 768px) {
+  .image-previews {
+    width: 80px;
+    height: 80px;
+  }
+
+  .category-image {
+    width: 40px;
+    height: 40px;
+  }
+
+  .no-image {
+    width: 40px;
+    height: 40px;
+    font-size: 16px;
+  }
+
+  .view-image img {
+    max-width: 150px;
+    max-height: 150px;
+  }
+}

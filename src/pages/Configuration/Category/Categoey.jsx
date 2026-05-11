@@ -11,6 +11,8 @@ import {
   FaCheckCircle,
   FaSearch,
   FaArrowLeft,
+  FaImage,
+  FaUpload,
 } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
 import "./CategoryManagement.css";
@@ -20,7 +22,12 @@ export default function CategoryManagement() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [showModal, setShowModal] = useState(false);
-  const [newCategory, setNewCategory] = useState({ name: "", description: "" });
+  const [newCategory, setNewCategory] = useState({
+    name: "",
+    description: "",
+    image: null,
+    imagePreview: "",
+  });
   const [editCategory, setEditCategory] = useState(null);
   const [viewCategory, setViewCategory] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
@@ -57,6 +64,7 @@ export default function CategoryManagement() {
         name: cat.name,
         description: cat.description || "",
         isBlocked: cat.status === "blocked",
+        image: cat.image || null,
       }));
       setCategories(formattedCategories);
     } catch (error) {
@@ -128,6 +136,60 @@ export default function CategoryManagement() {
     setTimeout(() => setSuccessMessage(""), 3000);
   };
 
+  const handleImageChange = (e, isEdit = false) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      const allowedTypes = [
+        "image/jpeg",
+        "image/jpg",
+        "image/png",
+        "image/gif",
+        "image/webp",
+      ];
+      if (!allowedTypes.includes(file.type)) {
+        if (isEdit) {
+          setEditError(
+            "Please upload a valid image file (JPEG, PNG, GIF, or WEBP)",
+          );
+        } else {
+          setAddError(
+            "Please upload a valid image file (JPEG, PNG, GIF, or WEBP)",
+          );
+        }
+        return;
+      }
+
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        if (isEdit) {
+          setEditError("Image size should be less than 5MB");
+        } else {
+          setAddError("Image size should be less than 5MB");
+        }
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (isEdit) {
+          setEditCategory({
+            ...editCategory,
+            image: file,
+            imagePreview: reader.result,
+          });
+        } else {
+          setNewCategory({
+            ...newCategory,
+            image: file,
+            imagePreview: reader.result,
+          });
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleAdd = async () => {
     if (!newCategory.name.trim()) {
       setAddError("Category name cannot be empty");
@@ -163,13 +225,26 @@ export default function CategoryManagement() {
       setLoading(true);
       setAddError("");
 
-      const response = await axiosInstance.post("/category", {
-        name: newCategory.name.trim(),
-        description: newCategory.description.trim(),
+      const formData = new FormData();
+      formData.append("name", newCategory.name.trim());
+      formData.append("description", newCategory.description.trim());
+      if (newCategory.image) {
+        formData.append("image", newCategory.image);
+      }
+
+      const response = await axiosInstance.post("/category", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
 
       await fetchCategories();
-      setNewCategory({ name: "", description: "" });
+      setNewCategory({
+        name: "",
+        description: "",
+        image: null,
+        imagePreview: "",
+      });
       setShowModal(false);
       showSuccessMessage(`Category "${newCategory.name}" added successfully!`);
     } catch (error) {
@@ -278,10 +353,20 @@ export default function CategoryManagement() {
 
     try {
       setLoading(true);
-      await axiosInstance.put(`/category/${editCategory.id}`, {
-        name: editCategory.name.trim(),
-        description: editCategory.description.trim(),
+
+      const formData = new FormData();
+      formData.append("name", editCategory.name.trim());
+      formData.append("description", editCategory.description.trim());
+      if (editCategory.image && typeof editCategory.image !== "string") {
+        formData.append("image", editCategory.image);
+      }
+
+      await axiosInstance.put(`/category/${editCategory.id}`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
       });
+
       await fetchCategories();
       setEditCategory(null);
       setEditError("");
@@ -299,6 +384,15 @@ export default function CategoryManagement() {
       setLoading(false);
     }
   };
+
+  const removeImage = (isEdit = false) => {
+    if (isEdit) {
+      setEditCategory({ ...editCategory, image: null, imagePreview: "" });
+    } else {
+      setNewCategory({ ...newCategory, image: null, imagePreview: "" });
+    }
+  };
+
   return (
     <div className="category-container">
       {successMessage && (
@@ -367,7 +461,12 @@ export default function CategoryManagement() {
               onClick={() => {
                 setShowModal(true);
                 setAddError("");
-                setNewCategory({ name: "", description: "" });
+                setNewCategory({
+                  name: "",
+                  description: "",
+                  image: null,
+                  imagePreview: "",
+                });
               }}
               style={{ whiteSpace: "nowrap" }}
               disabled={loading}
@@ -397,6 +496,7 @@ export default function CategoryManagement() {
                     <thead>
                       <tr>
                         <th>#</th>
+                        <th>Image</th>
                         <th>Category Name</th>
                         <th>Description</th>
                         <th>Status</th>
@@ -409,6 +509,34 @@ export default function CategoryManagement() {
                           <tr key={category.id}>
                             <td className="sr-cell">
                               {indexOfFirstItem + index + 1}
+                            </td>
+                            <td className="image-cell">
+                              {category.image ? (
+                                <img
+                                  src={category.image}
+                                  alt={category.name}
+                                  style={{
+                                    width: "50px",
+                                    height: "50px",
+                                    objectFit: "cover",
+                                    borderRadius: "8px",
+                                  }}
+                                />
+                              ) : (
+                                <div
+                                  style={{
+                                    width: "50px",
+                                    height: "50px",
+                                    backgroundColor: "#f0f0f0",
+                                    display: "flex",
+                                    alignItems: "center",
+                                    justifyContent: "center",
+                                    borderRadius: "8px",
+                                  }}
+                                >
+                                  <FaImage color="#999" />
+                                </div>
+                              )}
                             </td>
                             <td
                               className="name-cell"
@@ -443,7 +571,10 @@ export default function CategoryManagement() {
                                 <button
                                   className="table-action-btn edit-btn"
                                   onClick={() => {
-                                    setEditCategory(category);
+                                    setEditCategory({
+                                      ...category,
+                                      imagePreview: category.image,
+                                    });
                                     setEditError("");
                                   }}
                                   title="Edit"
@@ -480,7 +611,7 @@ export default function CategoryManagement() {
                         ))
                       ) : (
                         <tr className="empty-row">
-                          <td colSpan="5">
+                          <td colSpan="6">
                             <div className="empty-state">
                               <FaExclamationTriangle className="empty-icon" />
                               <p>No categories found</p>
@@ -577,6 +708,41 @@ export default function CategoryManagement() {
               </button>
             </div>
             <div className="modal-body">
+              <label className="input-label">Category Image *</label>
+              <div className="image-upload-container">
+                {newCategory.imagePreview ? (
+                  <div className="image-previews">
+                    <img
+                      src={newCategory.imagePreview}
+                      alt="Category preview"
+                    />
+                    <button
+                      type="button"
+                      className="remove-image-btn"
+                      onClick={() => removeImage(false)}
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="image-upload-label">
+                    <FaUpload />
+                    <span>Upload Image</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                      onChange={(e) => handleImageChange(e, false)}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+                )}
+                {!newCategory.imagePreview && (
+                  <div className="image-hint">
+                    Recommended: 500x500px, max 5MB (JPEG, PNG, GIF, WEBP)
+                  </div>
+                )}
+              </div>
+
               <label className="input-label">Category Name *</label>
               <input
                 className={`modal-input ${addError ? "error" : ""}`}
@@ -611,9 +777,6 @@ export default function CategoryManagement() {
                   <span>{addError}</span>
                 </div>
               )}
-              <div className="input-hint">
-                * Name: 2-50 characters | Description: 5-200 characters
-              </div>
             </div>
             <div className="modal-footer">
               <button
@@ -648,6 +811,41 @@ export default function CategoryManagement() {
               </button>
             </div>
             <div className="modal-body">
+              <label className="input-label">Category Image</label>
+              <div className="image-upload-container">
+                {editCategory.imagePreview ? (
+                  <div className="image-previews">
+                    <img
+                      src={editCategory.imagePreview}
+                      alt="Category preview"
+                    />
+                    <button
+                      type="button"
+                      className="remove-image-btn"
+                      onClick={() => removeImage(true)}
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="image-upload-label">
+                    <FaUpload />
+                    <span>Upload Image</span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/gif,image/webp"
+                      onChange={(e) => handleImageChange(e, true)}
+                      style={{ display: "none" }}
+                    />
+                  </label>
+                )}
+                {!editCategory.imagePreview && (
+                  <div className="image-hint">
+                    Recommended: 500x500px, max 5MB (JPEG, PNG, GIF, WEBP)
+                  </div>
+                )}
+              </div>
+
               <label className="input-label">Category Name *</label>
               <input
                 className={`modal-input ${editError ? "error" : ""}`}
@@ -720,6 +918,23 @@ export default function CategoryManagement() {
               </button>
             </div>
             <div className="modal-body view-body">
+              {viewCategory.image && (
+                <div className="view-item">
+                  <span className="view-label">Image:</span>
+                  <div className="view-value">
+                    <img
+                      src={viewCategory.image}
+                      alt={viewCategory.name}
+                      style={{
+                        width: "150px",
+                        height: "150px",
+                        objectFit: "cover",
+                        borderRadius: "8px",
+                      }}
+                    />
+                  </div>
+                </div>
+              )}
               <div className="view-item">
                 <span className="view-label">Category Name:</span>
                 <span className="view-value">{viewCategory.name}</span>

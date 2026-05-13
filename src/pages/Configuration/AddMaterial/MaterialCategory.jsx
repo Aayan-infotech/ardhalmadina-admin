@@ -15,10 +15,10 @@ import {
   FaUpload,
 } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
-import "./CategoryManagement.css";
+import "./MaterialCategory.css";
 import axiosInstance from "../../../utils/axiosInstance";
 
-export default function CategoryManagement() {
+export default function MaterialCategory() {
   const [categories, setCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -44,7 +44,7 @@ export default function CategoryManagement() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get("/category");
+      const response = await axiosInstance.get("/materialCategory/all");
 
       let categoriesData = [];
       const data = response.data;
@@ -232,11 +232,15 @@ export default function CategoryManagement() {
         formData.append("image", newCategory.image);
       }
 
-      const response = await axiosInstance.post("/category", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
+      const response = await axiosInstance.post(
+        "/materialCategory/create",
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         },
-      });
+      );
 
       await fetchCategories();
       setNewCategory({
@@ -250,7 +254,9 @@ export default function CategoryManagement() {
     } catch (error) {
       console.error("Error adding category:", error);
       if (error.response) {
-        setAddError(error.response.data.message || "Failed to add category");
+        setAddError(
+          error.response.data.message || "Failed to MaterialCategory",
+        );
       } else if (error.request) {
         setAddError("Network error: Unable to connect to server");
       } else {
@@ -276,7 +282,9 @@ export default function CategoryManagement() {
       setLoading(true);
 
       if (deleteConfirm.type === "category") {
-        await axiosInstance.delete(`/category/${deleteConfirm.id}`);
+        await axiosInstance.delete(
+          `/materialCategory/delete/${deleteConfirm.id}`,
+        );
 
         const categoryName = deleteConfirm.name;
 
@@ -292,10 +300,11 @@ export default function CategoryManagement() {
       setDeleteConfirm(null);
     } catch (error) {
       console.error("Error deleting:", error);
+
       if (error.response) {
-        showSuccessMessage(error.response.data.message || "Failed to delete");
+        showErrorMessage(error.response.data.message || "Failed to delete");
       } else {
-        showSuccessMessage("Failed to delete");
+        showErrorMessage("Failed to delete");
       }
     } finally {
       setLoading(false);
@@ -304,17 +313,36 @@ export default function CategoryManagement() {
 
   const toggleBlock = async (id) => {
     const categoryToToggle = categories.find((c) => c.id === id);
+    const newStatus = categoryToToggle.isBlocked ? "active" : "blocked";
 
     try {
       setLoading(true);
-      await axiosInstance.patch(`/category/status/${id}`);
+
+      // FIXED: Added request body with status
+      await axiosInstance.patch(
+        `/materialCategory/status/${id}`,
+        { status: newStatus },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
       await fetchCategories();
       showSuccessMessage(
         `"${categoryToToggle.name}" status updated successfully`,
       );
     } catch (error) {
-      console.error(error);
-      showSuccessMessage("Failed to update status");
+      console.error("Error updating status:", error);
+
+      if (error.response) {
+        showErrorMessage(
+          error.response.data.message || "Failed to update status",
+        );
+      } else {
+        showErrorMessage("Failed to update status");
+      }
     } finally {
       setLoading(false);
     }
@@ -361,11 +389,15 @@ export default function CategoryManagement() {
         formData.append("image", editCategory.image);
       }
 
-      await axiosInstance.put(`/category/${editCategory.id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
+      await axiosInstance.put(
+        `/materialCategory/update/${editCategory.id}`,
+        formData,
+        {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
         },
-      });
+      );
 
       await fetchCategories();
       setEditCategory(null);
@@ -419,7 +451,7 @@ export default function CategoryManagement() {
                 </button>
               </>
             ) : (
-              "Category Management"
+              "Material Category"
             )}
           </h3>
           <p className="page-subtitle">
@@ -471,7 +503,7 @@ export default function CategoryManagement() {
               style={{ whiteSpace: "nowrap" }}
               disabled={loading}
             >
-              <FaPlus style={{ marginRight: "8px" }} /> Add Category
+              <FaPlus style={{ marginRight: "8px" }} /> MaterialCategory
             </button>
           </div>
         )}
@@ -694,12 +726,12 @@ export default function CategoryManagement() {
         </div>
       </div>
 
-      {/* ADD CATEGORY MODAL */}
+      {/* MaterialCategory MODAL */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h5>Add New Category</h5>
+              <h5>Add New MaterialCategory</h5>
               <button
                 className="modal-close"
                 onClick={() => setShowModal(false)}
@@ -708,7 +740,7 @@ export default function CategoryManagement() {
               </button>
             </div>
             <div className="modal-body">
-              <label className="input-label">Category Image *</label>
+              <label className="input-label">MaterialCategory Image *</label>
               <div className="image-upload-container">
                 {newCategory.imagePreview ? (
                   <div className="image-previews">
@@ -743,7 +775,7 @@ export default function CategoryManagement() {
                 )}
               </div>
 
-              <label className="input-label">Category Name *</label>
+              <label className="input-label">MaterialCategory Name *</label>
               <input
                 className={`modal-input ${addError ? "error" : ""}`}
                 placeholder="Enter category name"
@@ -790,7 +822,7 @@ export default function CategoryManagement() {
                 onClick={handleAdd}
                 disabled={loading}
               >
-                Save Category
+                Save MaterialCategory
               </button>
             </div>
           </div>
@@ -802,7 +834,7 @@ export default function CategoryManagement() {
         <div className="modal-overlay" onClick={() => setEditCategory(null)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h5>Edit Category</h5>
+              <h5>Edit MaterialCategory</h5>
               <button
                 className="modal-close"
                 onClick={() => setEditCategory(null)}
@@ -811,7 +843,7 @@ export default function CategoryManagement() {
               </button>
             </div>
             <div className="modal-body">
-              <label className="input-label">Category Image</label>
+              <label className="input-label">MaterialCategory Image</label>
               <div className="image-upload-container">
                 {editCategory.imagePreview ? (
                   <div className="image-previews">
@@ -846,7 +878,7 @@ export default function CategoryManagement() {
                 )}
               </div>
 
-              <label className="input-label">Category Name *</label>
+              <label className="input-label">MaterialCategory Name *</label>
               <input
                 className={`modal-input ${editError ? "error" : ""}`}
                 value={editCategory.name}
@@ -894,7 +926,7 @@ export default function CategoryManagement() {
                 onClick={handleEditSave}
                 disabled={loading}
               >
-                Update Category
+                Update MaterialCategory
               </button>
             </div>
           </div>
@@ -909,7 +941,7 @@ export default function CategoryManagement() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h5>Category Details</h5>
+              <h5>MaterialCategory Details</h5>
               <button
                 className="modal-close"
                 onClick={() => setViewCategory(null)}
@@ -936,7 +968,7 @@ export default function CategoryManagement() {
                 </div>
               )}
               <div className="view-item">
-                <span className="view-label">Category Name:</span>
+                <span className="view-label">MaterialCategory Name:</span>
                 <span className="view-value">{viewCategory.name}</span>
               </div>
               <div className="view-item">
@@ -962,6 +994,52 @@ export default function CategoryManagement() {
                 onClick={() => setViewCategory(null)}
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* DELETE CONFIRMATION MODAL */}
+      {deleteConfirm && deleteConfirm.show && (
+        <div className="modal-overlay" onClick={() => setDeleteConfirm(null)}>
+          <div
+            className="modal-box confirm-modal"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-header">
+              <h5>Confirm Delete</h5>
+              <button
+                className="modal-close"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                <FaTimes />
+              </button>
+            </div>
+            <div className="modal-body">
+              <div className="confirm-icon">
+                <FaExclamationTriangle
+                  style={{ color: "#dc3545", fontSize: "48px" }}
+                />
+              </div>
+              <p>
+                Are you sure you want to delete category{" "}
+                <strong>"{deleteConfirm.name}"</strong>?
+              </p>
+              <p className="text-muted">This action cannot be undone.</p>
+            </div>
+            <div className="modal-footer">
+              <button
+                className="btn-cancel"
+                onClick={() => setDeleteConfirm(null)}
+              >
+                Cancel
+              </button>
+              <button
+                className="btn-delete"
+                onClick={confirmDelete}
+                disabled={loading}
+              >
+                {loading ? "Deleting..." : "Delete Category"}
               </button>
             </div>
           </div>

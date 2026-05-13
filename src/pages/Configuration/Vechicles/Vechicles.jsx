@@ -927,7 +927,7 @@ export default function VehicleManagement() {
         </div>
       </div> */}
 
-      <div className="filters-container">
+      <div className="filters-containers">
         <div className="filters-header">
           <div className="filters-title">
             <FaFilter /> <span>Filters</span>
@@ -941,7 +941,7 @@ export default function VehicleManagement() {
             </button>
           )}
         </div>
-        <div className="filters-grid">
+        <div className="filters-grids">
           <select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}

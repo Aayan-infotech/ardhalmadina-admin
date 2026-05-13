@@ -18,6 +18,7 @@ import {
   FaBan,
   FaMapMarkerAlt,
   FaLocationArrow,
+  FaImage,
 } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -49,7 +50,6 @@ export default function MaterialList() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [categories, setCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
   const [showViewModal, setShowViewModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -72,8 +72,8 @@ export default function MaterialList() {
   const [formData, setFormData] = useState({
     materialName: "",
     categoryId: "",
-    subCategoryId: "",
-    sellingPrice: "",
+    price: "", // Changed from sellingPrice to price
+    priceUnit: "perUnit",
     supplierName: "",
     addressLine: "",
     description: "",
@@ -159,6 +159,7 @@ export default function MaterialList() {
       (position) => {
         const { latitude, longitude } = position.coords;
         const coordinates = `${longitude},${latitude}`;
+
         setFormData((prev) => ({
           ...prev,
           coordinates: coordinates,
@@ -212,7 +213,7 @@ export default function MaterialList() {
 
   const loadCategories = async () => {
     try {
-      const response = await axiosInstance.get("/category");
+      const response = await axiosInstance.get("/materialCategory/all");
 
       let categoriesData = [];
       if (response.data && Array.isArray(response.data)) {
@@ -231,34 +232,6 @@ export default function MaterialList() {
     } catch (error) {
       console.error("Error loading categories:", error);
       toast.error("Failed to load categories");
-      return [];
-    }
-  };
-
-  // =========================
-  // LOAD SUBCATEGORIES
-  // =========================
-
-  const loadAllSubCategories = async () => {
-    try {
-      const response = await axiosInstance.get("/subcategory");
-
-      let subData = [];
-      if (response.data && Array.isArray(response.data)) {
-        subData = response.data;
-      } else if (response.data?.data && Array.isArray(response.data.data)) {
-        subData = response.data.data;
-      } else if (
-        response.data?.subcategories &&
-        Array.isArray(response.data.subcategories)
-      ) {
-        subData = response.data.subcategories;
-      }
-
-      setSubCategories(subData);
-      return subData;
-    } catch (error) {
-      console.error("Error loading subcategories:", error);
       return [];
     }
   };
@@ -285,13 +258,9 @@ export default function MaterialList() {
       }
 
       let allCategories = categories;
-      let allSubCategories = subCategories;
 
       if (allCategories.length === 0) {
         allCategories = await loadCategories();
-      }
-      if (allSubCategories.length === 0) {
-        allSubCategories = await loadAllSubCategories();
       }
 
       const transformedMaterials = materialsData.map((material) => {
@@ -306,40 +275,31 @@ export default function MaterialList() {
           categoryName = foundCategory ? foundCategory.name : "-";
         }
 
-        let subCategoryName = "-";
-        const subCategoryId = material.subCategoryId;
-        if (subCategoryId) {
-          const foundSubCategory = allSubCategories.find(
-            (s) =>
-              (s._id || s.id) ===
-              (typeof subCategoryId === "object"
-                ? subCategoryId._id
-                : subCategoryId),
-          );
-          subCategoryName = foundSubCategory ? foundSubCategory.name : "-";
-        }
-
         const apiStatus = material.status || "active";
-        const price =
-          material.sellDetails?.sellingPrice || material.sellingPrice || 0;
+        const price = material.price || material.sellingPrice || 0; // Support both field names
+        const priceUnit = material.priceUnit || "perUnit";
+
+        let coordinates = "";
+        if (material.location?.coordinates) {
+          coordinates = `${material.location.coordinates[0]},${material.location.coordinates[1]}`;
+        } else if (material.coordinates) {
+          coordinates = material.coordinates;
+        }
 
         return {
           id: material._id,
           name: material.materialName || "Unnamed",
           category: categoryName,
           categoryId: material.categoryId,
-          subCategory: subCategoryName,
-          subCategoryId: material.subCategoryId,
           price: price,
+          priceUnit: priceUnit,
           supplier: material.supplierName || "Unknown",
           location: material.addressLine || "Not specified",
           status: apiStatus,
           description: material.description || "",
           listingType: material.listingType || "sell",
           photos: material.photos || [],
-          coordinates: material.location?.coordinates
-            ? `${material.location.coordinates[0]},${material.location.coordinates[1]}`
-            : material.coordinates || "",
+          coordinates: coordinates,
           createdAt: material.createdAt
             ? new Date(material.createdAt).toLocaleDateString()
             : new Date().toLocaleDateString(),
@@ -439,8 +399,20 @@ export default function MaterialList() {
       return;
     }
 
-    if (!formData.sellingPrice) {
-      toast.error("Selling price required");
+    if (!formData.price) {
+      toast.error("Price required");
+      return;
+    }
+
+    if (!formData.coordinates) {
+      toast.error("Coordinates required. Please add location coordinates.");
+      return;
+    }
+
+    // Validate coordinates format
+    const coords = formData.coordinates.split(",");
+    if (coords.length !== 2) {
+      toast.error("Coordinates format should be: longitude,latitude");
       return;
     }
 
@@ -450,10 +422,9 @@ export default function MaterialList() {
 
       formDataToSend.append("materialName", formData.materialName);
       formDataToSend.append("categoryId", formData.categoryId);
-      formDataToSend.append("sellingPrice", formData.sellingPrice);
+      formDataToSend.append("price", formData.price); // Changed from sellingPrice to price
+      formDataToSend.append("priceUnit", formData.priceUnit);
 
-      if (formData.subCategoryId)
-        formDataToSend.append("subCategoryId", formData.subCategoryId);
       if (formData.supplierName)
         formDataToSend.append("supplierName", formData.supplierName);
       if (formData.addressLine)
@@ -462,12 +433,9 @@ export default function MaterialList() {
         formDataToSend.append("description", formData.description);
       if (formData.listingType)
         formDataToSend.append("listingType", formData.listingType);
+
       if (formData.coordinates) {
-        const coords = formData.coordinates.split(",");
-        if (coords.length === 2) {
-          formDataToSend.append("longitude", coords[0].trim());
-          formDataToSend.append("latitude", coords[1].trim());
-        }
+        formDataToSend.append("coordinates", formData.coordinates);
       }
 
       const newPhotos = formData.photos.filter((p) => p instanceof File);
@@ -517,8 +485,38 @@ export default function MaterialList() {
         return;
       }
 
-      if (!formData.sellingPrice) {
-        toast.error("Selling price required");
+      if (!formData.price) {
+        toast.error("Price required");
+        return;
+      }
+
+      if (!formData.coordinates) {
+        toast.error("Coordinates required. Please add location coordinates.");
+        return;
+      }
+
+      // Validate coordinates format
+      const coords = formData.coordinates.split(",");
+      if (coords.length !== 2) {
+        toast.error("Coordinates format should be: longitude,latitude");
+        return;
+      }
+
+      const longitude = parseFloat(coords[0].trim());
+      const latitude = parseFloat(coords[1].trim());
+
+      if (isNaN(longitude) || isNaN(latitude)) {
+        toast.error("Invalid coordinates. Please enter valid numbers.");
+        return;
+      }
+
+      if (latitude < -90 || latitude > 90) {
+        toast.error("Latitude must be between -90 and 90");
+        return;
+      }
+
+      if (longitude < -180 || longitude > 180) {
+        toast.error("Longitude must be between -180 and 180");
         return;
       }
 
@@ -526,35 +524,37 @@ export default function MaterialList() {
 
       formDataToSend.append("materialName", formData.materialName);
       formDataToSend.append("categoryId", formData.categoryId);
-      if (formData.subCategoryId)
-        formDataToSend.append("subCategoryId", formData.subCategoryId);
-      formDataToSend.append("sellingPrice", formData.sellingPrice);
-      if (formData.supplierName)
-        formDataToSend.append("supplierName", formData.supplierName);
-      if (formData.addressLine)
-        formDataToSend.append("addressLine", formData.addressLine);
-      if (formData.description)
-        formDataToSend.append("description", formData.description);
-      formDataToSend.append("listingType", formData.listingType);
+      formDataToSend.append("price", formData.price); // Changed from sellingPrice to price
+      formDataToSend.append("priceUnit", formData.priceUnit);
 
-      if (formData.coordinates && formData.coordinates.trim()) {
-        const coords = formData.coordinates.split(",");
-        if (coords.length === 2) {
-          formDataToSend.append("longitude", coords[0].trim());
-          formDataToSend.append("latitude", coords[1].trim());
-        } else {
-          toast.error("Coordinates format should be: longitude,latitude");
-          return;
-        }
+      if (formData.supplierName) {
+        formDataToSend.append("supplierName", formData.supplierName);
       }
 
-      if (formData.photos && formData.photos.length > 0) {
+      if (formData.addressLine) {
+        formDataToSend.append("addressLine", formData.addressLine);
+      }
+
+      if (formData.description) {
+        formDataToSend.append("description", formData.description);
+      }
+
+      formDataToSend.append("listingType", formData.listingType);
+
+      if (formData.coordinates) {
+        formDataToSend.append("coordinates", formData.coordinates);
+      }
+
+      // Photos
+      if (formData.photos?.length > 0) {
         formData.photos.forEach((photo) => {
           if (photo instanceof File) {
             formDataToSend.append("photos", photo);
           }
         });
       }
+
+      console.log("Sending data:", [...formDataToSend.entries()]);
 
       const response = await axiosInstance.post(
         "/material/create",
@@ -566,7 +566,9 @@ export default function MaterialList() {
         },
       );
 
-      if (response.data && response.data.success !== false) {
+      console.log("Response:", response.data);
+
+      if (response.data?.success !== false) {
         toast.success("Material Added Successfully");
         setShowAddModal(false);
         resetForm();
@@ -588,43 +590,14 @@ export default function MaterialList() {
     setFormData({
       materialName: "",
       categoryId: "",
-      subCategoryId: "",
-      sellingPrice: "",
+      price: "",
+      priceUnit: "perUnit",
       supplierName: "",
       addressLine: "",
       description: "",
       listingType: "sell",
       coordinates: "",
       photos: [],
-    });
-  };
-
-  // =========================
-  // GET SUBCATEGORIES FOR A CATEGORY
-  // =========================
-
-  const getSubCategoriesByCategory = (categoryId) => {
-    if (!categoryId) return [];
-
-    return subCategories.filter((sub) => {
-      const subCategoryId =
-        typeof sub.categoryId === "object"
-          ? sub.categoryId?._id
-          : sub.categoryId;
-      return String(subCategoryId) === String(categoryId);
-    });
-  };
-
-  // =========================
-  // CATEGORY CHANGE
-  // =========================
-
-  const handleCategoryChange = (e) => {
-    const categoryId = e.target.value;
-    setFormData({
-      ...formData,
-      categoryId,
-      subCategoryId: "",
     });
   };
 
@@ -663,11 +636,8 @@ export default function MaterialList() {
         typeof material.categoryId === "object"
           ? material.categoryId?._id
           : material.categoryId || "",
-      subCategoryId:
-        typeof material.subCategoryId === "object"
-          ? material.subCategoryId?._id
-          : material.subCategoryId || "",
-      sellingPrice: material.price || "",
+      price: material.price || "",
+      priceUnit: material.priceUnit || "perUnit",
       supplierName: material.supplier || "",
       addressLine: material.location || "",
       description: material.description || "",
@@ -718,6 +688,25 @@ export default function MaterialList() {
   };
 
   // =========================
+  // GET PRICE UNIT LABEL
+  // =========================
+
+  const getPriceUnitLabel = (unit) => {
+    switch (unit) {
+      case "perUnit":
+        return "Per Unit";
+      case "perKg":
+        return "Per Kg";
+      case "perMeter":
+        return "Per Meter";
+      case "perSquareFoot":
+        return "Per Sq Ft";
+      default:
+        return unit;
+    }
+  };
+
+  // =========================
   // FILTERS & PAGINATION
   // =========================
 
@@ -751,7 +740,6 @@ export default function MaterialList() {
   useEffect(() => {
     const init = async () => {
       await loadCategories();
-      await loadAllSubCategories();
       await loadMaterials();
     };
     init();
@@ -838,7 +826,6 @@ export default function MaterialList() {
                 <tr>
                   <th>Material</th>
                   <th>Category</th>
-                  <th>Sub Category</th>
                   <th>Supplier</th>
                   <th>Price</th>
                   <th>Location</th>
@@ -858,9 +845,13 @@ export default function MaterialList() {
                           {material.category}
                         </span>
                       </td>
-                      <td>{material.subCategory}</td>
                       <td>{material.supplier}</td>
-                      <td>{material.price ? `₹${material.price}` : "-"}</td>
+                      <td>
+                        ₹{material.price}{" "}
+                        <span style={{ fontSize: "11px", color: "#666" }}>
+                          ({getPriceUnitLabel(material.priceUnit)})
+                        </span>
+                      </td>
                       <td>{material.location}</td>
                       <td>{getApiStatusBadge(material.status)}</td>
                       <td>
@@ -922,7 +913,7 @@ export default function MaterialList() {
                   ))
                 ) : (
                   <tr>
-                    <td colSpan="8" className="empty-state">
+                    <td colSpan="7" className="empty-state">
                       <FaBoxes className="empty-icon" />
                       <p>No materials found</p>
                     </td>
@@ -960,231 +951,328 @@ export default function MaterialList() {
         )}
       </div>
 
-      {/* Add Modal */}
+      {/* Add Material Modal */}
       {showAddModal && (
         <div className="modal-overlay" onClick={() => setShowAddModal(false)}>
           <div
             className="modal-content large"
             onClick={(e) => e.stopPropagation()}
           >
+            {/* Header */}
             <div className="modal-header">
-              <h3>
-                <FaPlus /> Add Material
-              </h3>
+              <div className="modal-header-content">
+                <h3>
+                  <FaPlus className="icon" /> Add Material
+                </h3>
+                <p className="modal-subtitle">
+                  Fill in the details to list a new material
+                </p>
+              </div>
               <button
                 className="close-btn"
                 onClick={() => setShowAddModal(false)}
+                aria-label="Close modal"
               >
                 <FaTimes />
               </button>
             </div>
+
+            {/* Body */}
             <div className="modal-body">
-              <div className="form-grid">
-                <div className="input-group">
-                  <label>Material Name *</label>
-                  <input
-                    type="text"
-                    value={formData.materialName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, materialName: e.target.value })
-                    }
-                    placeholder="Enter material name"
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Category *</label>
-                  <select
-                    value={formData.categoryId}
-                    onChange={handleCategoryChange}
-                  >
-                    <option value="">Select Category</option>
-                    {categories.map((category) => (
-                      <option
-                        key={category._id || category.id}
-                        value={category._id || category.id}
-                      >
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label>Sub Category</label>
-                  <select
-                    value={formData.subCategoryId}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        subCategoryId: e.target.value,
-                      })
-                    }
-                    disabled={!formData.categoryId}
-                  >
-                    <option value="">Select Sub Category</option>
-                    {getSubCategoriesByCategory(formData.categoryId).map(
-                      (sub) => (
-                        <option
-                          key={sub._id || sub.id}
-                          value={sub._id || sub.id}
-                        >
-                          {sub.name}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label>Selling Price *</label>
-                  <input
-                    type="number"
-                    value={formData.sellingPrice}
-                    onChange={(e) =>
-                      setFormData({ ...formData, sellingPrice: e.target.value })
-                    }
-                    placeholder="Enter price"
-                  />
-                </div>
-                <div className="input-group">
-                  <label>Supplier Name</label>
-                  <input
-                    type="text"
-                    value={formData.supplierName}
-                    onChange={(e) =>
-                      setFormData({ ...formData, supplierName: e.target.value })
-                    }
-                    placeholder="Supplier name"
-                  />
-                </div>
-
-                {/* Address with Google Maps Autocomplete */}
-                <div className="input-group full-width">
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <FaMapMarkerAlt /> Address / Location
-                    <button
-                      type="button"
-                      onClick={getCurrentLocation}
-                      disabled={fetchingLocation}
-                      style={{
-                        marginLeft: "auto",
-                        padding: "4px 12px",
-                        fontSize: "12px",
-                        background: "#28a745",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: fetchingLocation ? "not-allowed" : "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                      }}
-                    >
-                      <FaLocationArrow />
-                      {fetchingLocation ? "Getting..." : "Get My Location"}
-                    </button>
-                  </label>
-                  <input
-                    ref={addressInputRef}
-                    type="text"
-                    value={formData.addressLine}
-                    onChange={(e) =>
-                      setFormData({ ...formData, addressLine: e.target.value })
-                    }
-                    placeholder="Start typing address or use 'Get My Location' button"
-                    style={{ marginBottom: "8px" }}
-                  />
-                  <small style={{ color: "#6c757d", fontSize: "11px" }}>
-                    💡 Tip: Start typing address and select from dropdown to
-                    auto-fill coordinates
-                  </small>
-                </div>
-
-                <div className="input-group">
-                  <label>Coordinates (longitude,latitude)</label>
-                  <input
-                    type="text"
-                    placeholder="Enter coordinates (e.g., 80.9462,26.8467)"
-                    value={formData.coordinates}
-                    onChange={(e) =>
-                      setFormData({ ...formData, coordinates: e.target.value })
-                    }
-                  />
-                  <small style={{ color: "#6c757d", fontSize: "11px" }}>
-                    Format: longitude,latitude (e.g., 80.9462,26.8467)
-                  </small>
-                </div>
-
-                <div className="input-group">
-                  <label>Listing Type</label>
-                  <select
-                    value={formData.listingType}
-                    onChange={(e) =>
-                      setFormData({ ...formData, listingType: e.target.value })
-                    }
-                  >
-                    <option value="sell">Sell</option>
-                    <option value="rent">Rent</option>
-                  </select>
-                </div>
-
-                <div className="input-group full-width">
-                  <label>Photos</label>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handlePhotoUpload}
-                  />
-                  {formData.photos.length > 0 && (
-                    <div className="photo-preview">
-                      {formData.photos.map((photo, idx) => (
-                        <div key={idx} className="photo-preview-item">
-                          <img
-                            src={
-                              photo instanceof File
-                                ? URL.createObjectURL(photo)
-                                : photo
-                            }
-                            alt="Preview"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => removePhoto(idx)}
-                          >
-                            <FaTimes />
-                          </button>
-                        </div>
-                      ))}
+              <form className="material-form">
+                {/* Section 1: Basic Information */}
+                <div className="form-section">
+                  <h4 className="section-title">Basic Information</h4>
+                  <div className="form-grid">
+                    <div className="input-group">
+                      <label htmlFor="materialName">Material Name *</label>
+                      <input
+                        id="materialName"
+                        type="text"
+                        value={formData.materialName}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            materialName: e.target.value,
+                          })
+                        }
+                        placeholder="e.g., Steel Rod, Cement Bag"
+                        required
+                      />
                     </div>
-                  )}
+
+                    <div className="input-group">
+                      <label htmlFor="categoryId">Category *</label>
+                      <select
+                        id="categoryId"
+                        value={formData.categoryId}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            categoryId: e.target.value,
+                          })
+                        }
+                        required
+                      >
+                        <option value="">Select Category</option>
+                        {categories.map((category) => (
+                          <option
+                            key={category._id || category.id}
+                            value={category._id || category.id}
+                          >
+                            {category.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
                 </div>
-                <div className="input-group full-width">
-                  <label>Description</label>
-                  <textarea
-                    rows="4"
-                    value={formData.description}
-                    onChange={(e) =>
-                      setFormData({ ...formData, description: e.target.value })
-                    }
-                    placeholder="Material description"
-                  />
+
+                {/* Section 2: Pricing */}
+                <div className="form-section">
+                  <h4 className="section-title">Pricing</h4>
+                  <div className="form-grid">
+                    <div className="input-group">
+                      <label htmlFor="price">Price *</label>
+                      <div className="price-input-wrapper">
+                        <span className="currency-symbol">₹</span>
+                        <input
+                          id="price"
+                          type="number"
+                          value={formData.price}
+                          onChange={(e) =>
+                            setFormData({ ...formData, price: e.target.value })
+                          }
+                          placeholder="0.00"
+                          min="0"
+                          step="0.01"
+                          required
+                        />
+                      </div>
+                    </div>
+
+                    <div className="input-group">
+                      <label htmlFor="priceUnit">Price Unit *</label>
+                      <select
+                        id="priceUnit"
+                        value={formData.priceUnit}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            priceUnit: e.target.value,
+                          })
+                        }
+                        required
+                      >
+                        <option value="perUnit">Per Unit</option>
+                        <option value="perKg">Per Kg</option>
+                        <option value="perMeter">Per Meter</option>
+                        <option value="perSquareFoot">Per Square Foot</option>
+                      </select>
+                    </div>
+                  </div>
                 </div>
-              </div>
+
+                {/* Section 3: Supplier Information */}
+                <div className="form-section">
+                  <h4 className="section-title">Supplier Information</h4>
+                  <div className="input-group full-width">
+                    <label htmlFor="supplierName">Supplier Name</label>
+                    <input
+                      id="supplierName"
+                      type="text"
+                      value={formData.supplierName}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          supplierName: e.target.value,
+                        })
+                      }
+                      placeholder="Your company or name"
+                    />
+                  </div>
+                </div>
+
+                {/* Section 4: Location */}
+                <div className="form-section">
+                  <h4 className="section-title">Location Details</h4>
+
+                  {/* Address Input with Get Location Button */}
+                  <div className="input-group full-width">
+                    <div className="label-wrapper">
+                      <label htmlFor="addressLine">
+                        <FaMapMarkerAlt className="icon" /> Address / Location
+                      </label>
+                      <button
+                        type="button"
+                        onClick={getCurrentLocation}
+                        disabled={fetchingLocation}
+                        className="btn-get-location"
+                      >
+                        <FaLocationArrow />
+                        {fetchingLocation ? "Getting..." : "Auto-detect"}
+                      </button>
+                    </div>
+                    <input
+                      id="addressLine"
+                      ref={addressInputRef}
+                      type="text"
+                      value={formData.addressLine}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          addressLine: e.target.value,
+                        })
+                      }
+                      placeholder="Type address or use auto-detect button"
+                    />
+                    <small className="form-hint">
+                      💡 Start typing to see suggestions from Google Maps
+                    </small>
+                  </div>
+
+                  {/* Coordinates Input */}
+                  <div className="input-group full-width">
+                    <label htmlFor="coordinates">Coordinates * (lon,lat)</label>
+                    <input
+                      id="coordinates"
+                      type="text"
+                      placeholder="80.9462,26.8467"
+                      value={formData.coordinates}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          coordinates: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                    <small className="form-hint">
+                      Format: longitude,latitude (auto-filled when you select
+                      address)
+                    </small>
+                  </div>
+                </div>
+
+                {/* Section 5: Listing Type */}
+                <div className="form-section">
+                  <h4 className="section-title">Listing Details</h4>
+                  <div className="input-group">
+                    <label htmlFor="listingType">Listing Type</label>
+                    <div className="radio-group">
+                      <div className="radio-option">
+                        <input
+                          id="listingTypeSell"
+                          type="radio"
+                          name="listingType"
+                          value="sell"
+                          checked={formData.listingType === "sell"}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              listingType: e.target.value,
+                            })
+                          }
+                        />
+                        <label htmlFor="listingTypeSell">Sell</label>
+                      </div>
+                      <div className="radio-option">
+                        <input
+                          id="listingTypeRent"
+                          type="radio"
+                          name="listingType"
+                          value="rent"
+                          checked={formData.listingType === "rent"}
+                          onChange={(e) =>
+                            setFormData({
+                              ...formData,
+                              listingType: e.target.value,
+                            })
+                          }
+                        />
+                        <label htmlFor="listingTypeRent">Rent</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 6: Photos */}
+                <div className="form-section">
+                  <h4 className="section-title">Photos</h4>
+                  <div className="input-group full-width">
+                    <label htmlFor="photos" className="file-upload-label">
+                      <FaImage className="icon" /> Click to upload photos
+                    </label>
+                    <input
+                      id="photos"
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      onChange={handlePhotoUpload}
+                      className="file-input-hidden"
+                    />
+                    {formData.photos.length > 0 && (
+                      <div className="photo-preview">
+                        {formData.photos.map((photo, idx) => (
+                          <div key={idx} className="photo-preview-item">
+                            <img
+                              src={
+                                photo instanceof File
+                                  ? URL.createObjectURL(photo)
+                                  : photo
+                              }
+                              alt={`Preview ${idx + 1}`}
+                            />
+                            <button
+                              type="button"
+                              className="remove-photo-btn"
+                              onClick={() => removePhoto(idx)}
+                              aria-label="Remove photo"
+                            >
+                              <FaTimes />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Section 7: Description */}
+                <div className="form-section">
+                  <h4 className="section-title">Additional Information</h4>
+                  <div className="input-group full-width">
+                    <label htmlFor="description">Description</label>
+                    <textarea
+                      id="description"
+                      rows="4"
+                      value={formData.description}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          description: e.target.value,
+                        })
+                      }
+                      placeholder="Describe the material, quality, condition, etc."
+                    />
+                    <small className="form-hint">
+                      {formData.description.length}/500 characters
+                    </small>
+                  </div>
+                </div>
+              </form>
             </div>
+
+            {/* Footer */}
             <div className="modal-footer">
               <button
                 className="btn-secondary"
                 onClick={() => setShowAddModal(false)}
               >
-                Cancel
+                <FaTimes /> Cancel
               </button>
               <button className="btn-primary" onClick={handleAddMaterial}>
-                Add Material
+                <FaPlus /> Add Material
               </button>
             </div>
           </div>
@@ -1225,7 +1313,9 @@ export default function MaterialList() {
                   <label>Category *</label>
                   <select
                     value={formData.categoryId}
-                    onChange={handleCategoryChange}
+                    onChange={(e) =>
+                      setFormData({ ...formData, categoryId: e.target.value })
+                    }
                   >
                     <option value="">Select Category</option>
                     {categories.map((cat) => (
@@ -1236,37 +1326,29 @@ export default function MaterialList() {
                   </select>
                 </div>
                 <div className="input-group">
-                  <label>Sub Category</label>
-                  <select
-                    value={formData.subCategoryId}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        subCategoryId: e.target.value,
-                      })
-                    }
-                    disabled={!formData.categoryId}
-                  >
-                    <option value="">Select Sub Category</option>
-                    {getSubCategoriesByCategory(formData.categoryId).map(
-                      (sub) => (
-                        <option key={sub._id} value={sub._id}>
-                          {sub.name}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </div>
-                <div className="input-group">
-                  <label>Selling Price *</label>
+                  <label>Price *</label>
                   <input
                     type="number"
                     step="0.01"
-                    value={formData.sellingPrice}
+                    value={formData.price}
                     onChange={(e) =>
-                      setFormData({ ...formData, sellingPrice: e.target.value })
+                      setFormData({ ...formData, price: e.target.value })
                     }
                   />
+                </div>
+                <div className="input-group">
+                  <label>Price Unit *</label>
+                  <select
+                    value={formData.priceUnit}
+                    onChange={(e) =>
+                      setFormData({ ...formData, priceUnit: e.target.value })
+                    }
+                  >
+                    <option value="perUnit">Per Unit</option>
+                    <option value="perKg">Per Kg</option>
+                    <option value="perMeter">Per Meter</option>
+                    <option value="perSquareFoot">Per Square Foot</option>
+                  </select>
                 </div>
                 <div className="input-group">
                   <label>Supplier Name</label>
@@ -1328,7 +1410,7 @@ export default function MaterialList() {
                 </div>
 
                 <div className="input-group">
-                  <label>Coordinates</label>
+                  <label>Coordinates * (longitude,latitude)</label>
                   <input
                     type="text"
                     placeholder="longitude,latitude"
@@ -1336,6 +1418,7 @@ export default function MaterialList() {
                     onChange={(e) =>
                       setFormData({ ...formData, coordinates: e.target.value })
                     }
+                    required
                   />
                 </div>
 
@@ -1555,19 +1638,6 @@ export default function MaterialList() {
                       marginBottom: "5px",
                     }}
                   >
-                    Sub Category
-                  </label>
-                  <p style={{ margin: 0 }}>{selectedMaterial.subCategory}</p>
-                </div>
-                <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
                     Supplier
                   </label>
                   <p style={{ margin: 0 }}>{selectedMaterial.supplier}</p>
@@ -1583,7 +1653,12 @@ export default function MaterialList() {
                   >
                     Price
                   </label>
-                  <p style={{ margin: 0 }}>₹{selectedMaterial.price}</p>
+                  <p style={{ margin: 0 }}>
+                    ₹{selectedMaterial.price}{" "}
+                    <span style={{ fontSize: "12px", color: "#666" }}>
+                      ({getPriceUnitLabel(selectedMaterial.priceUnit)})
+                    </span>
+                  </p>
                 </div>
                 <div>
                   <label

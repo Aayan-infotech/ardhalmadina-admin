@@ -11,6 +11,8 @@ import {
   FaComments,
   FaRegListAlt,
   FaTag,
+  FaChevronLeft,
+  FaChevronRight,
 } from "react-icons/fa";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -26,6 +28,8 @@ const FAQ_TYPES = [
   { value: "directSales", label: "Direct Sales", color: "secondary" },
 ];
 
+const ITEMS_PER_PAGE = 10;
+
 export default function FAQManagement() {
   const [faqs, setFaqs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -39,6 +43,9 @@ export default function FAQManagement() {
   const [submitting, setSubmitting] = useState(false);
   const [expandedRow, setExpandedRow] = useState(null);
   const [selectedType, setSelectedType] = useState("all");
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Load FAQs using axiosInstance
   const loadFAQs = async () => {
@@ -87,6 +94,7 @@ export default function FAQManagement() {
       }
 
       setFaqs(faqsData);
+      setCurrentPage(1); // Reset to first page when data changes
     } catch (error) {
       console.error("Error loading FAQs:", error);
       toast.error(
@@ -102,6 +110,11 @@ export default function FAQManagement() {
   useEffect(() => {
     loadFAQs();
   }, []);
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedType]);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -234,10 +247,63 @@ export default function FAQManagement() {
 
   const toggleExpand = (id) => setExpandedRow(expandedRow === id ? null : id);
 
+  // Filter FAQs based on selected type
   const filteredFaqs =
     selectedType === "all"
       ? faqs
       : faqs.filter((faq) => faq.type === selectedType);
+
+  // Pagination logic
+  const totalItems = filteredFaqs.length;
+  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = startIndex + ITEMS_PER_PAGE;
+  const currentFaqs = filteredFaqs.slice(startIndex, endIndex);
+
+  // Pagination controls
+  const goToPage = (page) => {
+    setCurrentPage(Math.max(1, Math.min(page, totalPages)));
+    setExpandedRow(null); // Close expanded row when changing page
+  };
+
+  const goToPreviousPage = () => goToPage(currentPage - 1);
+  const goToNextPage = () => goToPage(currentPage + 1);
+
+  // Generate page numbers to display
+  const getPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPagesToShow = 5;
+
+    if (totalPages <= maxPagesToShow) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i);
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 4; i++) {
+          pageNumbers.push(i);
+        }
+        pageNumbers.push("...");
+        pageNumbers.push(totalPages);
+      } else if (currentPage >= totalPages - 2) {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = totalPages - 3; i <= totalPages; i++) {
+          pageNumbers.push(i);
+        }
+      } else {
+        pageNumbers.push(1);
+        pageNumbers.push("...");
+        for (let i = currentPage - 1; i <= currentPage + 1; i++) {
+          pageNumbers.push(i);
+        }
+        pageNumbers.push("...");
+        pageNumbers.push(totalPages);
+      }
+    }
+
+    return pageNumbers;
+  };
 
   const getTypeColor = (type) =>
     FAQ_TYPES.find((t) => t.value === type)?.color || "secondary";
@@ -311,79 +377,124 @@ export default function FAQManagement() {
             </p>
           </div>
         ) : (
-          <table className="faq-table">
-            <thead>
-              <tr>
-                <th className="col-num">#</th>
-                <th className="col-type">Type</th>
-                <th className="col-question">Question</th>
-                <th className="col-actions">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredFaqs.map((faq, index) => {
-                const id = faq.id || faq._id;
-                const isExpanded = expandedRow === id;
-                return (
-                  <React.Fragment key={id}>
-                    <tr className={`faq-row ${isExpanded ? "expanded" : ""}`}>
-                      <td className="col-num">
-                        <span className="row-num">{index + 1}</span>
-                      </td>
-                      <td className="col-type">
-                        <span
-                          className={`type-badge ${getTypeColor(faq.type)}`}
-                        >
-                          <FaTag className="type-icon" />
-                          {getTypeLabel(faq.type)}
-                        </span>
-                      </td>
-                      <td className="col-question">
-                        <span className="question-text">{faq.question}</span>
-                      </td>
-                      <td className="col-actions">
-                        <div className="faq-actions">
-                          <button
-                            className="action-btn view"
-                            onClick={() => toggleExpand(id)}
-                            title={isExpanded ? "Hide Answer" : "View Answer"}
+          <>
+            <table className="faq-table">
+              <thead>
+                <tr>
+                  <th className="col-num">#</th>
+                  <th className="col-type">Type</th>
+                  <th className="col-question">Question</th>
+                  <th className="col-actions">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentFaqs.map((faq, index) => {
+                  const id = faq.id || faq._id;
+                  const isExpanded = expandedRow === id;
+                  const globalIndex = startIndex + index + 1;
+                  return (
+                    <React.Fragment key={id}>
+                      <tr className={`faq-row ${isExpanded ? "expanded" : ""}`}>
+                        <td className="col-num">
+                          <span className="row-num">{globalIndex}</span>
+                        </td>
+                        <td className="col-type">
+                          <span
+                            className={`type-badge ${getTypeColor(faq.type)}`}
                           >
-                            <FaEye />
-                          </button>
-                          <button
-                            className="action-btn edit"
-                            onClick={() => openModal(faq)}
-                            title="Edit FAQ"
-                          >
-                            <FaEdit />
-                          </button>
-                          <button
-                            className="action-btn delete"
-                            onClick={() => handleDelete(faq)}
-                            title="Delete FAQ"
-                          >
-                            <FaTrash />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                    {isExpanded && (
-                      <tr className="answer-row">
-                        <td colSpan="4">
-                          <div className="faq-answer">
-                            <div className="answer-label">
-                              <FaComments /> Answer:
-                            </div>
-                            <div className="answer-content">{faq.answer}</div>
+                            <FaTag className="type-icon" />
+                            {getTypeLabel(faq.type)}
+                          </span>
+                        </td>
+                        <td className="col-question">
+                          <span className="question-text">{faq.question}</span>
+                        </td>
+                        <td className="col-actions">
+                          <div className="faq-actions">
+                            <button
+                              className="action-btn view"
+                              onClick={() => toggleExpand(id)}
+                              title={isExpanded ? "Hide Answer" : "View Answer"}
+                            >
+                              <FaEye />
+                            </button>
+                            <button
+                              className="action-btn edit"
+                              onClick={() => openModal(faq)}
+                              title="Edit FAQ"
+                            >
+                              <FaEdit />
+                            </button>
+                            <button
+                              className="action-btn delete"
+                              onClick={() => handleDelete(faq)}
+                              title="Delete FAQ"
+                            >
+                              <FaTrash />
+                            </button>
                           </div>
                         </td>
                       </tr>
-                    )}
-                  </React.Fragment>
-                );
-              })}
-            </tbody>
-          </table>
+                      {isExpanded && (
+                        <tr className="answer-row">
+                          <td colSpan="4">
+                            <div className="faq-answer">
+                              <div className="answer-label">
+                                <FaComments /> Answer:
+                              </div>
+                              <div className="answer-content">{faq.answer}</div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="pagination-container">
+                <div className="pagination-info">
+                  Showing {startIndex + 1} to {Math.min(endIndex, totalItems)}{" "}
+                  of {totalItems} FAQs
+                </div>
+                <div className="pagination-controls">
+                  <button
+                    onClick={goToPreviousPage}
+                    disabled={currentPage === 1}
+                    className="pagination-btn"
+                  >
+                    <FaChevronLeft /> Previous
+                  </button>
+
+                  <div className="pagination-numbers">
+                    {getPageNumbers().map((page, index) => (
+                      <button
+                        key={index}
+                        onClick={() =>
+                          typeof page === "number" && goToPage(page)
+                        }
+                        className={`pagination-number ${currentPage === page ? "active" : ""} ${typeof page !== "number" ? "dots" : ""}`}
+                        disabled={typeof page !== "number"}
+                      >
+                        {page}
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="pagination-btn"
+                  >
+                    Next <FaChevronRight />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -468,8 +579,6 @@ export default function FAQManagement() {
           </div>
         </div>
       )}
-
-    
     </div>
   );
 }

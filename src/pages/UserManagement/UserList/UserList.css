@@ -443,7 +443,6 @@
 .pagination-container {
   padding: 20px;
   border-top: 1px solid #e9ecef;
-  background: #f8f9fa;
   display: flex;
   justify-content: flex-end;
   align-items: center;

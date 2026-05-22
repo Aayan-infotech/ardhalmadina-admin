@@ -1,6 +1,6 @@
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, HashRouter } from "react-router-dom";
 
 import Login from "./pages/Login/Login";
 import Dashboard from "./pages/Dashboard/Dashboard";
@@ -10,6 +10,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 import UserList from "./pages/UserManagement/UserList/UserList";
 import AddMaterial from "./pages/Configuration/AddMaterial/AddMaterial.jsx";
 import Category from "./pages/Configuration/Category/ListingCategoey.jsx";
+import SubcategoryManagement from "./pages/Configuration/Subcategory/SubcategoryManagement.jsx";
 import MaterialCategory from "./pages/Configuration/AddMaterial/MaterialCategory.jsx";
 
 import Vechicles from "./pages/Configuration/Vechicles/Vechicles.jsx";
@@ -17,6 +18,10 @@ import StaticContent from "./pages/StaticContent/StaticContent.jsx";
 import Faq from "./pages/Faq/Faq.jsx";
 import Requirements from "./pages/Requirements/Requirements.jsx";
 import OrderManagement from "./pages/Orders/OrderManagement.jsx";
+// import ListingOrders from "./pages/Orders/ListingOrders.jsx";
+import PaymentFailedPage from "./pages/Payment/PaymentFailedPage.jsx";
+import PaymentSuccessPage from "./pages/Payment/PaymentSuccessPage.jsx";
+import ProductBooking from "./pages/ProductBooking/ProductBooking.jsx";
 
 export default function App() {
   return (
@@ -26,6 +31,8 @@ export default function App() {
       <Routes>
         {/* PUBLIC */}
         <Route path="/" element={<Login />} />
+        <Route path="/payment-failed" element={<PaymentFailedPage />} />
+        <Route path="/payment-success" element={<PaymentSuccessPage />} />
 
         {/* PROTECTED */}
         <Route element={<ProtectedRoute />}>
@@ -38,6 +45,10 @@ export default function App() {
             />
             <Route path="/configuration/category" element={<Category />} />
             <Route
+              path="/configuration/subcategory-management"
+              element={<SubcategoryManagement />}
+            />
+            <Route
               path="/configuration/material-category"
               element={<MaterialCategory />}
             />
@@ -46,6 +57,8 @@ export default function App() {
             <Route path="/faq" element={<Faq />} />
             <Route path="/requirements" element={<Requirements />} />
             <Route path="/order-management" element={<OrderManagement />} />
+            {/* <Route path="/listing-orders" element={<ListingOrders />} /> */}
+            <Route path="/product-booking" element={<ProductBooking />} />
           </Route>
         </Route>
       </Routes>

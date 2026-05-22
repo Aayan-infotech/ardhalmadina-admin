@@ -25,7 +25,7 @@ export default function UserList() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 5;
+  const perPage = 10;
   const formatPhoneNumber = (phone) => {
     if (!phone) return "N/A";
     if (typeof phone === "object" && phone !== null) {

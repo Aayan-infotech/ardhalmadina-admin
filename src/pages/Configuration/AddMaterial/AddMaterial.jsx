@@ -63,7 +63,7 @@ export default function MaterialList() {
   const [mapsLoaded, setMapsLoaded] = useState(false);
   const [fetchingLocation, setFetchingLocation] = useState(false);
 
-  const perPage = 5;
+  const perPage = 10;
 
   // Refs for Google Maps autocomplete
   const addressInputRef = useRef(null);

@@ -66,7 +66,7 @@ export default function Login() {
           className="crm-logo"
           style={{ fontWeight: "bold", fontSize: "28px" }}
         >
-          Shah Construction
+          ARDH AL MADINA
         </h1>
 
         <h2 className="login-heading">Log in to Admin Dashboard</h2>

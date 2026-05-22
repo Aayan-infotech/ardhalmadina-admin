@@ -32,6 +32,8 @@ import {
   FaHourglassHalf,
   FaCheckCircle,
   FaTimesCircle,
+  FaBoxOpen ,
+  FaMoneyBillWave,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -46,6 +48,7 @@ export default function Sidebar({ collapsed, onClose }) {
   const [configOpen, setConfigOpen] = useState(false);
   const [staticOpen, setStaticOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -158,6 +161,16 @@ export default function Sidebar({ collapsed, onClose }) {
               <FaThLarge className="submenu-icon" />
               Category
             </NavLink>
+
+            <NavLink
+              to="/configuration/subcategory-management"
+              className="submenu-item"
+              onClick={handleNavClick}
+            >
+              <FaThLarge className="submenu-icon" />
+              Subcategory
+            </NavLink>
+
             <NavLink
               to="/configuration/material-category"
               className="submenu-item"
@@ -182,6 +195,14 @@ export default function Sidebar({ collapsed, onClose }) {
             >
               <FaTruck className="submenu-icon" />
               Product List
+            </NavLink>
+            <NavLink
+              to="/product-booking"
+              className="submenu-item"
+              onClick={handleNavClick}
+            >
+              <FaBoxOpen className="submenu-icon" />
+              Product Booking
             </NavLink>
           </div>
         )}
@@ -250,34 +271,16 @@ export default function Sidebar({ collapsed, onClose }) {
               onClick={handleNavClick}
             >
               <FaClipboardList className="submenu-icon" />
-              Orders List
+              Orders Management
             </NavLink>
 
             {/* <NavLink
-              to="/order-management/pending-orders"
+              to="/listing-orders"
               className="submenu-item"
               onClick={handleNavClick}
             >
               <FaHourglassHalf className="submenu-icon" />
-              Pending Orders
-            </NavLink>
-
-            <NavLink
-              to="/order-management/completed-orders"
-              className="submenu-item"
-              onClick={handleNavClick}
-            >
-              <FaCheckCircle className="submenu-icon" />
-              Completed Orders
-            </NavLink>
-
-            <NavLink
-              to="/order-management/cancelled-orders"
-              className="submenu-item"
-              onClick={handleNavClick}
-            >
-              <FaTimesCircle className="submenu-icon" />
-              Cancelled Orders
+              Listing Orders
             </NavLink> */}
           </div>
         )}

@@ -75,7 +75,7 @@ export default function VehicleManagement() {
   const [selectedItem, setSelectedItem] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const perPage = 5;
+  const perPage = 10;
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState("");
 
   const [formData, setFormData] = useState({

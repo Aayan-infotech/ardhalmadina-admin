@@ -34,6 +34,7 @@ import {
   FaTimesCircle,
   FaBoxOpen ,
   FaMoneyBillWave,
+  FaAd,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -215,6 +216,15 @@ export default function Sidebar({ collapsed, onClose }) {
         >
           <FaTools />
           {!collapsed && <span>Requirements</span>}
+        </NavLink>
+         {/* REQUIREMENTS */}
+        <NavLink
+          to="/advertisement"
+          className="menu-item"
+          onClick={handleNavClick}
+        >
+          <FaAd />
+          {!collapsed && <span>Advertisements</span>}
         </NavLink>
         {/* STATIC CONTENT */}
         <div

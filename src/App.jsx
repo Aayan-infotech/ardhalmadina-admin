@@ -22,6 +22,7 @@ import OrderManagement from "./pages/Orders/OrderManagement.jsx";
 import PaymentFailedPage from "./pages/Payment/PaymentFailedPage.jsx";
 import PaymentSuccessPage from "./pages/Payment/PaymentSuccessPage.jsx";
 import ProductBooking from "./pages/ProductBooking/ProductBooking.jsx";
+import AdvertisementManagement from "./pages/Advertisements/AdvertisementManagement.jsx";
 
 export default function App() {
   return (
@@ -57,7 +58,7 @@ export default function App() {
             <Route path="/faq" element={<Faq />} />
             <Route path="/requirements" element={<Requirements />} />
             <Route path="/order-management" element={<OrderManagement />} />
-            {/* <Route path="/listing-orders" element={<ListingOrders />} /> */}
+            <Route path="/advertisement" element={<AdvertisementManagement />} />
             <Route path="/product-booking" element={<ProductBooking />} />
           </Route>
         </Route>

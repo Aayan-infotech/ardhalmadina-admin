@@ -9,7 +9,7 @@ import ProtectedRoute from "./routes/ProtectedRoute";
 
 import UserList from "./pages/UserManagement/UserList/UserList";
 import AddMaterial from "./pages/Configuration/AddMaterial/AddMaterial.jsx";
-import Category from "./pages/Configuration/Category/ListingCategoey.jsx";
+import Category from "./pages/Configuration/Category/ListingCategory.jsx";
 import SubcategoryManagement from "./pages/Configuration/Subcategory/SubcategoryManagement.jsx";
 import MaterialCategory from "./pages/Configuration/AddMaterial/MaterialCategory.jsx";
 

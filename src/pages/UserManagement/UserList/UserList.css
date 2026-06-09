@@ -28,17 +28,18 @@
 }
 
 .page-title {
-  font-size: 24px;
-  font-weight: 600;
+  font-size: 20px !important;
+  font-weight: 500;
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 9px;
   margin: 0;
+  color: #121213 !important ;
 }
 
-.page-title .icon {
-  font-size: 22px;
-  color: #4e8a99;
+ .icon {
+  font-size: 15px;
+  color: #364c53;
 }
 
 .page-subtitle {

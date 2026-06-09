@@ -228,10 +228,10 @@ export default function UserList() {
         <div className="header-content">
           {/* LEFT SIDE */}
           <div className="header-left">
-            <h1 className="page-title">
-              <FaUsers className="icon" />
+            <h3 className="page-title">
+              
               User Management
-            </h1>
+            </h3>
             <p className="page-subtitle">
               Manage all registered users and their accounts
             </p>

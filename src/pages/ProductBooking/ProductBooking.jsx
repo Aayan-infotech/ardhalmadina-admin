@@ -338,7 +338,7 @@ export default function ProductBooking() {
   };
 
   return (
-    <div className="requirements-container">
+    <div className="">
       {successMessage && (
         <div className="success-toast">
           <FaCheckCircle className="toast-icon" />

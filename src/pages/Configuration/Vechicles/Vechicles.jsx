@@ -866,7 +866,7 @@ export default function VehicleManagement() {
   };
 
   return (
-    <div className="material-page">
+    <div className="">
       <ToastContainer position="top-right" autoClose={3000} />
 
       <div className="page-header headers-section">

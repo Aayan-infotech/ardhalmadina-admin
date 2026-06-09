@@ -581,13 +581,13 @@ export default function ListingCategory() {
                                 >
                                   <FaEdit />
                                 </button>
-                                <button
+                                {/* <button
                                   className="table-action-btn delete-btn"
                                   onClick={() => handleDelete(category.id)}
                                   title="Delete"
                                 >
                                   <FaTrash />
-                                </button>
+                                </button> */}
                                 <button
                                   className={`table-action-btn ${
                                     category.isBlocked

@@ -13,9 +13,8 @@ import {
   FaExclamationTriangle,
   FaFilter,
   FaSortAmountDown,
-  FaToggleOn,
-  FaToggleOff,
-  FaBan,
+  FaLock,
+  FaLockOpen,
   FaMapMarkerAlt,
   FaLocationArrow,
   FaImage,
@@ -41,6 +40,13 @@ const loadGoogleMapsScript = (apiKey) => {
     script.onerror = reject;
     document.head.appendChild(script);
   });
+};
+
+// Helper function to truncate address
+const truncateAddress = (address, maxLength = 40) => {
+  if (!address) return "Not specified";
+  if (address.length <= maxLength) return address;
+  return address.substring(0, maxLength) + "...";
 };
 
 export default function MaterialList() {
@@ -72,7 +78,7 @@ export default function MaterialList() {
   const [formData, setFormData] = useState({
     materialName: "",
     categoryId: "",
-    price: "", // Changed from sellingPrice to price
+    price: "",
     priceUnit: "perUnit",
     supplierName: "",
     addressLine: "",
@@ -276,8 +282,7 @@ export default function MaterialList() {
         }
 
         const apiStatus = material.status || "active";
-        const price = material.price || material.sellingPrice || 0; // Support both field names
-        const priceUnit = material.priceUnit || "perUnit";
+        const price = material.price || material.sellingPrice || 0;
 
         let coordinates = "";
         if (material.location?.coordinates) {
@@ -292,7 +297,7 @@ export default function MaterialList() {
           category: categoryName,
           categoryId: material.categoryId,
           price: price,
-          priceUnit: priceUnit,
+          priceUnit: material.priceUnit || "perUnit",
           supplier: material.supplierName || "Unknown",
           location: material.addressLine || "Not specified",
           status: apiStatus,
@@ -316,7 +321,7 @@ export default function MaterialList() {
   };
 
   // =========================
-  // UPDATE MATERIAL STATUS
+  // UPDATE MATERIAL STATUS (Block/Unblock)
   // =========================
   const updateMaterialStatus = async (materialId, newStatus) => {
     setUpdatingStatus(true);
@@ -328,7 +333,7 @@ export default function MaterialList() {
 
       if (response.data && response.data.success !== false) {
         toast.success(
-          `Status updated to ${newStatus === "active" ? "Active" : "Blocked"}`,
+          `Material ${newStatus === "active" ? "Unblocked" : "Blocked"} successfully`,
         );
         await loadMaterials();
       } else {
@@ -342,7 +347,7 @@ export default function MaterialList() {
     }
   };
 
-  const toggleStatus = (materialId, currentStatus) => {
+  const toggleBlock = (materialId, currentStatus) => {
     const newStatus = currentStatus === "active" ? "blocked" : "active";
     updateMaterialStatus(materialId, newStatus);
   };
@@ -409,7 +414,6 @@ export default function MaterialList() {
       return;
     }
 
-    // Validate coordinates format
     const coords = formData.coordinates.split(",");
     if (coords.length !== 2) {
       toast.error("Coordinates format should be: longitude,latitude");
@@ -422,7 +426,7 @@ export default function MaterialList() {
 
       formDataToSend.append("materialName", formData.materialName);
       formDataToSend.append("categoryId", formData.categoryId);
-      formDataToSend.append("price", formData.price); // Changed from sellingPrice to price
+      formDataToSend.append("price", formData.price);
       formDataToSend.append("priceUnit", formData.priceUnit);
 
       if (formData.supplierName)
@@ -495,7 +499,6 @@ export default function MaterialList() {
         return;
       }
 
-      // Validate coordinates format
       const coords = formData.coordinates.split(",");
       if (coords.length !== 2) {
         toast.error("Coordinates format should be: longitude,latitude");
@@ -524,7 +527,7 @@ export default function MaterialList() {
 
       formDataToSend.append("materialName", formData.materialName);
       formDataToSend.append("categoryId", formData.categoryId);
-      formDataToSend.append("price", formData.price); // Changed from sellingPrice to price
+      formDataToSend.append("price", formData.price);
       formDataToSend.append("priceUnit", formData.priceUnit);
 
       if (formData.supplierName) {
@@ -545,7 +548,6 @@ export default function MaterialList() {
         formDataToSend.append("coordinates", formData.coordinates);
       }
 
-      // Photos
       if (formData.photos?.length > 0) {
         formData.photos.forEach((photo) => {
           if (photo instanceof File) {
@@ -553,8 +555,6 @@ export default function MaterialList() {
           }
         });
       }
-
-      console.log("Sending data:", [...formDataToSend.entries()]);
 
       const response = await axiosInstance.post(
         "/material/create",
@@ -565,8 +565,6 @@ export default function MaterialList() {
           },
         },
       );
-
-      console.log("Response:", response.data);
 
       if (response.data?.success !== false) {
         toast.success("Material Added Successfully");
@@ -669,7 +667,7 @@ export default function MaterialList() {
       case "blocked":
         return (
           <span className="badge-status badge-danger">
-            <FaBan /> Blocked
+            <FaLock /> Blocked
           </span>
         );
       case "deleted":
@@ -733,6 +731,24 @@ export default function MaterialList() {
     currentPage * perPage,
   );
 
+  // Pagination functions
+  const goToPreviousPage = () => {
+    setCurrentPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const goToNextPage = () => {
+    setCurrentPage((prev) => Math.min(prev + 1, totalPages));
+  };
+
+  const paginate = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, categoryFilter, statusFilter]);
+
   // =========================
   // INITIAL LOAD
   // =========================
@@ -746,9 +762,10 @@ export default function MaterialList() {
   }, []);
 
   return (
-    <div className="material-page">
+    <div className="">
       <ToastContainer position="top-right" autoClose={3000} />
-      {/* Header */}
+
+      {/* Header - Matching Material Category Style */}
       <div className="page-header">
         <div className="header-left">
           <h1 className="page-title">Material Inventory</h1>
@@ -778,9 +795,8 @@ export default function MaterialList() {
           </button>
         </div>
       </div>
-
-      {/* Filters */}
-      <div className="filters-bar">
+      {/* Filters Bar - Matching Material Category Style */}
+       <div className="filters-bar">
         <div className="filter-group">
           <FaFilter className="filter-icon" />
           <select
@@ -824,13 +840,13 @@ export default function MaterialList() {
             <table className="material-table">
               <thead>
                 <tr>
-                  <th>Material</th>
-                  <th>Category</th>
-                  <th>Supplier</th>
-                  <th>Price</th>
-                  <th>Location</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>MATERIAL</th>
+                  <th>CATEGORY</th>
+                  <th>SUPPLIER</th>
+                  <th>PRICE</th>
+                  <th>LOCATION</th>
+                  <th>STATUS</th>
+                  <th>ACTIONS</th>
                 </tr>
               </thead>
               <tbody>
@@ -841,23 +857,25 @@ export default function MaterialList() {
                         <div className="material-name">{material.name}</div>
                       </td>
                       <td>
-                        <span className="category-tag">
-                          {material.category}
-                        </span>
+                        <span className="category-tag">{material.category}</span>
                       </td>
                       <td>{material.supplier}</td>
-                      <td>
+                      <td className="price-text">
                         ₹{material.price}{" "}
                         <span style={{ fontSize: "11px", color: "#666" }}>
                           ({getPriceUnitLabel(material.priceUnit)})
                         </span>
                       </td>
-                      <td>{material.location}</td>
-                      <td>{getApiStatusBadge(material.status)}</td>
                       <td>
-                        <div className="action-group">
+                        <span className="location-text" title={material.location}>
+                          {truncateAddress(material.location, 40)}
+                        </span>
+                      </td>
+                      <td>{getApiStatusBadge(material.status)}</td>
+                      <td className="actions-cell">
+                        <div className="action-buttons">
                           <button
-                            className="action-icon view"
+                            className="table-action-btn view-btn"
                             onClick={() => {
                               setSelectedMaterial(material);
                               setShowViewModal(true);
@@ -867,14 +885,14 @@ export default function MaterialList() {
                             <FaEye />
                           </button>
                           <button
-                            className="action-icon edit"
+                            className="table-action-btn edit-btn"
                             onClick={() => openEditModal(material)}
                             title="Edit Material"
                           >
                             <FaEdit />
                           </button>
                           <button
-                            className="action-icon delete"
+                            className="table-action-btn delete-btn"
                             onClick={() => {
                               setMaterialToDelete(material);
                               setShowDeleteModal(true);
@@ -883,29 +901,13 @@ export default function MaterialList() {
                           >
                             <FaTrash />
                           </button>
-                        </div>
-
-                        {/* Toggle Switch for Active/Blocked Status */}
-                        <div className="status-toggle-container">
                           <button
-                            className={`small-toggle-btn ${material.status === "active" ? "active" : "blocked"}`}
-                            onClick={() =>
-                              toggleStatus(material.id, material.status)
-                            }
+                            className={`table-action-btn ${material.status === "active" ? "lock-btn" : "unlock-btn"}`}
+                            onClick={() => toggleBlock(material.id, material.status)}
                             disabled={updatingStatus}
-                            title={
-                              material.status === "active"
-                                ? "Click to Block"
-                                : "Click to Activate"
-                            }
+                            title={material.status === "active" ? "Block Material" : "Unblock Material"}
                           >
-                            {material.status === "active" ? (
-                              <FaToggleOn className="small-toggle-icon" />
-                            ) : material.status === "blocked" ? (
-                              <FaToggleOff className="small-toggle-icon" />
-                            ) : (
-                              <FaTimesCircle className="small-toggle-icon" />
-                            )}
+                            {material.status === "active" ? <FaLock /> : <FaLockOpen />}
                           </button>
                         </div>
                       </td>
@@ -922,29 +924,56 @@ export default function MaterialList() {
               </tbody>
             </table>
 
-            {totalPages > 1 && (
-              <div className="pagination">
-                <button
-                  disabled={currentPage === 1}
-                  onClick={() => setCurrentPage((p) => p - 1)}
-                >
-                  Previous
-                </button>
-                {[...Array(totalPages)].map((_, i) => (
+            {/* Pagination - Matching Material Category Style */}
+            {filteredMaterials.length > 0 && totalPages > 1 && (
+              <div className="pagination-container">
+                <div className="pagination-controls">
                   <button
-                    key={i}
-                    className={currentPage === i + 1 ? "active" : ""}
-                    onClick={() => setCurrentPage(i + 1)}
+                    onClick={goToPreviousPage}
+                    disabled={currentPage === 1}
+                    className="pagination-btn"
                   >
-                    {i + 1}
+                    Previous
                   </button>
-                ))}
-                <button
-                  disabled={currentPage === totalPages}
-                  onClick={() => setCurrentPage((p) => p + 1)}
-                >
-                  Next
-                </button>
+                  <div className="page-numbers">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((number) => {
+                      if (
+                        number === 1 ||
+                        number === totalPages ||
+                        (number >= currentPage - 1 && number <= currentPage + 1)
+                      ) {
+                        return (
+                          <button
+                            key={number}
+                            onClick={() => paginate(number)}
+                            className={`page-number ${currentPage === number ? "active" : ""}`}
+                          >
+                            {number}
+                          </button>
+                        );
+                      } else if (number === currentPage - 2 || number === currentPage + 2) {
+                        return (
+                          <span key={number} className="page-ellipsis">
+                            ...
+                          </span>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                  <button
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                    className="pagination-btn"
+                  >
+                    Next
+                  </button>
+                </div>
+                <div className="pagination-info">
+                  Showing {(currentPage - 1) * perPage + 1} to{" "}
+                  {Math.min(currentPage * perPage, filteredMaterials.length)} of{" "}
+                  {filteredMaterials.length} materials
+                </div>
               </div>
             )}
           </>
@@ -958,7 +987,6 @@ export default function MaterialList() {
             className="modal-content large"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="modal-header">
               <div className="modal-header-content">
                 <h3>
@@ -977,10 +1005,8 @@ export default function MaterialList() {
               </button>
             </div>
 
-            {/* Body */}
             <div className="modal-body">
               <form className="material-form">
-                {/* Section 1: Basic Information */}
                 <div className="form-section">
                   <h4 className="section-title">Basic Information</h4>
                   <div className="form-grid">
@@ -1028,27 +1054,23 @@ export default function MaterialList() {
                   </div>
                 </div>
 
-                {/* Section 2: Pricing */}
                 <div className="form-section">
                   <h4 className="section-title">Pricing</h4>
                   <div className="form-grid">
                     <div className="input-group">
                       <label htmlFor="price">Price *</label>
-                      <div className="price-input-wrapper">
-                        <span className="currency-symbol">₹</span>
-                        <input
-                          id="price"
-                          type="number"
-                          value={formData.price}
-                          onChange={(e) =>
-                            setFormData({ ...formData, price: e.target.value })
-                          }
-                          placeholder="0.00"
-                          min="0"
-                          step="0.01"
-                          required
-                        />
-                      </div>
+                      <input
+                        id="price"
+                        type="number"
+                        value={formData.price}
+                        onChange={(e) =>
+                          setFormData({ ...formData, price: e.target.value })
+                        }
+                        placeholder="0.00"
+                        min="0"
+                        step="0.01"
+                        required
+                      />
                     </div>
 
                     <div className="input-group">
@@ -1073,7 +1095,6 @@ export default function MaterialList() {
                   </div>
                 </div>
 
-                {/* Section 3: Supplier Information */}
                 <div className="form-section">
                   <h4 className="section-title">Supplier Information</h4>
                   <div className="input-group full-width">
@@ -1093,11 +1114,9 @@ export default function MaterialList() {
                   </div>
                 </div>
 
-                {/* Section 4: Location */}
                 <div className="form-section">
                   <h4 className="section-title">Location Details</h4>
 
-                  {/* Address Input with Get Location Button */}
                   <div className="input-group full-width">
                     <div className="label-wrapper">
                       <label htmlFor="addressLine">
@@ -1131,7 +1150,6 @@ export default function MaterialList() {
                     </small>
                   </div>
 
-                  {/* Coordinates Input */}
                   <div className="input-group full-width">
                     <label htmlFor="coordinates">Coordinates * (lon,lat)</label>
                     <input
@@ -1148,13 +1166,11 @@ export default function MaterialList() {
                       required
                     />
                     <small className="form-hint">
-                      Format: longitude,latitude (auto-filled when you select
-                      address)
+                      Format: longitude,latitude (auto-filled when you select address)
                     </small>
                   </div>
                 </div>
 
-                {/* Section 5: Listing Type */}
                 <div className="form-section">
                   <h4 className="section-title">Listing Details</h4>
                   <div className="input-group">
@@ -1196,7 +1212,6 @@ export default function MaterialList() {
                   </div>
                 </div>
 
-                {/* Section 6: Photos */}
                 <div className="form-section">
                   <h4 className="section-title">Photos</h4>
                   <div className="input-group full-width">
@@ -1211,7 +1226,7 @@ export default function MaterialList() {
                       onChange={handlePhotoUpload}
                       className="file-input-hidden"
                     />
-                    {formData.photos.length > 0 && (
+                                        {formData.photos.length > 0 && (
                       <div className="photo-preview">
                         {formData.photos.map((photo, idx) => (
                           <div key={idx} className="photo-preview-item">
@@ -1238,7 +1253,6 @@ export default function MaterialList() {
                   </div>
                 </div>
 
-                {/* Section 7: Description */}
                 <div className="form-section">
                   <h4 className="section-title">Additional Information</h4>
                   <div className="input-group full-width">
@@ -1263,7 +1277,6 @@ export default function MaterialList() {
               </form>
             </div>
 
-            {/* Footer */}
             <div className="modal-footer">
               <button
                 className="btn-secondary"
@@ -1287,9 +1300,14 @@ export default function MaterialList() {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h3>
-                <FaEdit /> Edit Material
-              </h3>
+              <div className="modal-header-content">
+                <h3>
+                  <FaEdit className="icon" /> Edit Material
+                </h3>
+                <p className="modal-subtitle">
+                  Update the material details
+                </p>
+              </div>
               <button
                 className="close-btn"
                 onClick={() => setShowEditModal(false)}
@@ -1361,38 +1379,21 @@ export default function MaterialList() {
                   />
                 </div>
 
-                {/* Address with Google Maps Autocomplete - Edit Mode */}
                 <div className="input-group full-width">
-                  <label
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "10px",
-                    }}
-                  >
-                    <FaMapMarkerAlt /> Address / Location
+                  <div className="label-wrapper">
+                    <label>
+                      <FaMapMarkerAlt className="icon" /> Address / Location
+                    </label>
                     <button
                       type="button"
                       onClick={getCurrentLocation}
                       disabled={fetchingLocation}
-                      style={{
-                        marginLeft: "auto",
-                        padding: "4px 12px",
-                        fontSize: "12px",
-                        background: "#28a745",
-                        color: "white",
-                        border: "none",
-                        borderRadius: "4px",
-                        cursor: fetchingLocation ? "not-allowed" : "pointer",
-                        display: "flex",
-                        alignItems: "center",
-                        gap: "5px",
-                      }}
+                      className="btn-get-location"
                     >
                       <FaLocationArrow />
-                      {fetchingLocation ? "Getting..." : "Get My Location"}
+                      {fetchingLocation ? "Getting..." : "Auto-detect"}
                     </button>
-                  </label>
+                  </div>
                   <input
                     ref={addressInputRef}
                     type="text"
@@ -1401,11 +1402,9 @@ export default function MaterialList() {
                       setFormData({ ...formData, addressLine: e.target.value })
                     }
                     placeholder="Start typing address or use 'Get My Location' button"
-                    style={{ marginBottom: "8px" }}
                   />
-                  <small style={{ color: "#6c757d", fontSize: "11px" }}>
-                    💡 Tip: Start typing address and select from dropdown to
-                    auto-fill coordinates
+                  <small className="form-hint">
+                    💡 Tip: Start typing address and select from dropdown to auto-fill coordinates
                   </small>
                 </div>
 
@@ -1437,11 +1436,16 @@ export default function MaterialList() {
 
                 <div className="input-group full-width">
                   <label>Photos</label>
+                  <label htmlFor="editPhotos" className="file-upload-label">
+                    <FaImage className="icon" /> Click to upload photos
+                  </label>
                   <input
+                    id="editPhotos"
                     type="file"
                     multiple
                     accept="image/*"
                     onChange={handlePhotoUpload}
+                    className="file-input-hidden"
                   />
                   {formData.photos.length > 0 && (
                     <div className="photo-preview">
@@ -1457,6 +1461,7 @@ export default function MaterialList() {
                           />
                           <button
                             type="button"
+                            className="remove-photo-btn"
                             onClick={() => removePhoto(idx)}
                           >
                             <FaTimes />
@@ -1507,9 +1512,14 @@ export default function MaterialList() {
             style={{ maxWidth: "700px" }}
           >
             <div className="modal-header">
-              <h3>
-                <FaInfoCircle /> Material Details
-              </h3>
+              <div className="modal-header-content">
+                <h3>
+                  <FaInfoCircle className="icon" /> Material Details
+                </h3>
+                <p className="modal-subtitle">
+                  Complete information about the material
+                </p>
+              </div>
               <button
                 className="close-btn"
                 onClick={() => setShowViewModal(false)}
@@ -1518,15 +1528,7 @@ export default function MaterialList() {
               </button>
             </div>
             <div className="modal-body">
-              <div
-                className="detail-header"
-                style={{
-                  display: "flex",
-                  gap: "20px",
-                  marginBottom: "20px",
-                  alignItems: "center",
-                }}
-              >
+              <div className="detail-header">
                 {selectedMaterial.photos?.[0] ? (
                   <img
                     src={selectedMaterial.photos[0]}
@@ -1539,21 +1541,7 @@ export default function MaterialList() {
                     }}
                   />
                 ) : (
-                  <div
-                    className="detail-avatar"
-                    style={{
-                      width: "80px",
-                      height: "80px",
-                      background: "#007bff",
-                      color: "white",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: "12px",
-                      fontSize: "32px",
-                      fontWeight: "bold",
-                    }}
-                  >
+                  <div className="detail-avatar">
                     {selectedMaterial.name?.charAt(0)}
                   </div>
                 )}
@@ -1567,26 +1555,15 @@ export default function MaterialList() {
 
               {selectedMaterial.photos?.length > 0 && (
                 <div className="photo-gallery" style={{ marginBottom: "20px" }}>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      marginBottom: "10px",
-                      display: "block",
-                    }}
-                  >
+                  <label style={{ fontWeight: "bold", color: "#555", marginBottom: "10px", display: "block" }}>
                     Photos
                   </label>
-                  <div
-                    className="photo-list"
-                    style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}
-                  >
+                  <div style={{ display: "flex", gap: "10px", flexWrap: "wrap" }}>
                     {selectedMaterial.photos.map((photo, idx) => (
                       <img
                         key={idx}
                         src={photo}
                         alt="Material"
-                        className="material-photo"
                         style={{
                           width: "100px",
                           height: "100px",
@@ -1596,64 +1573,26 @@ export default function MaterialList() {
                           transition: "transform 0.2s",
                         }}
                         onClick={() => window.open(photo, "_blank")}
-                        onMouseEnter={(e) =>
-                          (e.currentTarget.style.transform = "scale(1.05)")
-                        }
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.transform = "scale(1)")
-                        }
+                        onMouseEnter={(e) => (e.currentTarget.style.transform = "scale(1.05)")}
+                        onMouseLeave={(e) => (e.currentTarget.style.transform = "scale(1)")}
                       />
                     ))}
                   </div>
                 </div>
               )}
 
-              <div
-                className="detail-grid"
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(2, 1fr)",
-                  gap: "15px",
-                }}
-              >
+              <div className="detail-grid">
                 <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Category
-                  </label>
-                  <p style={{ margin: 0 }}>{selectedMaterial.category}</p>
+                  <label>Category</label>
+                  <p>{selectedMaterial.category}</p>
                 </div>
                 <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Supplier
-                  </label>
-                  <p style={{ margin: 0 }}>{selectedMaterial.supplier}</p>
+                  <label>Supplier</label>
+                  <p>{selectedMaterial.supplier}</p>
                 </div>
                 <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Price
-                  </label>
-                  <p style={{ margin: 0 }}>
+                  <label>Price</label>
+                  <p>
                     ₹{selectedMaterial.price}{" "}
                     <span style={{ fontSize: "12px", color: "#666" }}>
                       ({getPriceUnitLabel(selectedMaterial.priceUnit)})
@@ -1661,91 +1600,29 @@ export default function MaterialList() {
                   </p>
                 </div>
                 <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Location
-                  </label>
-                  <p style={{ margin: 0 }}>{selectedMaterial.location}</p>
+                  <label>Location</label>
+                  <p>{selectedMaterial.location}</p>
                 </div>
                 <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Coordinates
-                  </label>
-                  <p style={{ margin: 0 }}>
-                    {selectedMaterial.coordinates || "Not provided"}
-                  </p>
+                  <label>Coordinates</label>
+                  <p>{selectedMaterial.coordinates || "Not provided"}</p>
                 </div>
                 <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Status
-                  </label>
-                  <p style={{ margin: 0 }}>
-                    {getApiStatusBadge(selectedMaterial.status)}
-                  </p>
+                  <label>Status</label>
+                  <p>{getApiStatusBadge(selectedMaterial.status)}</p>
                 </div>
                 <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Listing Type
-                  </label>
-                  <p style={{ margin: 0 }}>
-                    {selectedMaterial.listingType || "Sell"}
-                  </p>
+                  <label>Listing Type</label>
+                  <p>{selectedMaterial.listingType || "Sell"}</p>
                 </div>
                 <div>
-                  <label
-                    style={{
-                      fontWeight: "bold",
-                      color: "#555",
-                      display: "block",
-                      marginBottom: "5px",
-                    }}
-                  >
-                    Created
-                  </label>
-                  <p style={{ margin: 0 }}>{selectedMaterial.createdAt}</p>
+                  <label>Created</label>
+                  <p>{selectedMaterial.createdAt}</p>
                 </div>
                 {selectedMaterial.description && (
                   <div className="full-width" style={{ gridColumn: "span 2" }}>
-                    <label
-                      style={{
-                        fontWeight: "bold",
-                        color: "#555",
-                        display: "block",
-                        marginBottom: "5px",
-                      }}
-                    >
-                      Description
-                    </label>
-                    <p style={{ margin: 0, lineHeight: "1.5" }}>
-                      {selectedMaterial.description}
-                    </p>
+                    <label>Description</label>
+                    <p style={{ lineHeight: "1.5" }}>{selectedMaterial.description}</p>
                   </div>
                 )}
               </div>
@@ -1754,14 +1631,6 @@ export default function MaterialList() {
               <button
                 className="btn-secondary"
                 onClick={() => setShowViewModal(false)}
-                style={{
-                  padding: "8px 20px",
-                  background: "#6c757d",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: "pointer",
-                }}
               >
                 Close
               </button>
@@ -1772,18 +1641,18 @@ export default function MaterialList() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && materialToDelete && (
-        <div
-          className="modal-overlay"
-          onClick={() => setShowDeleteModal(false)}
-        >
+        <div className="modal-overlay" onClick={() => setShowDeleteModal(false)}>
           <div
             className="modal-content small"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="modal-header">
-              <h3 className="text-danger">
-                <FaTrash /> Permanently Delete Material
-              </h3>
+              <div className="modal-header-content">
+                <h3 className="text-danger">
+                  <FaTrash className="icon" /> Permanently Delete Material
+                </h3>
+                <p className="modal-subtitle">This action cannot be undone</p>
+              </div>
               <button
                 className="close-btn"
                 onClick={() => setShowDeleteModal(false)}
@@ -1792,36 +1661,24 @@ export default function MaterialList() {
               </button>
             </div>
             <div className="modal-body text-center">
-              <FaTimesCircle
-                className="delete-warning"
-                style={{
-                  fontSize: "48px",
-                  color: "#dc3545",
-                  marginBottom: "16px",
-                }}
-              />
+              <FaTimesCircle className="delete-warning" />
               <p>
                 Are you sure you want to{" "}
                 <strong style={{ color: "#dc3545" }}>PERMANENTLY DELETE</strong>{" "}
                 <strong>{materialToDelete.name}</strong>?
               </p>
-              <p
-                className="text-muted"
-                style={{ color: "#6c757d", marginTop: "8px" }}
-              >
+              <p className="text-muted">
                 This action cannot be undone. The material will be completely
                 removed from the database.
               </p>
-              <div
-                style={{
-                  background: "#fff3cd",
-                  padding: "10px",
-                  borderRadius: "6px",
-                  marginTop: "16px",
-                  fontSize: "12px",
-                  color: "#856404",
-                }}
-              >
+              <div style={{
+                background: "#fff3cd",
+                padding: "10px",
+                borderRadius: "6px",
+                marginTop: "16px",
+                fontSize: "12px",
+                color: "#856404",
+              }}>
                 ⚠️ Warning: This is permanent deletion, not just status change.
               </div>
             </div>
@@ -1837,15 +1694,6 @@ export default function MaterialList() {
                 className="btn-danger"
                 onClick={handlePermanentDelete}
                 disabled={deleting}
-                style={{
-                  background: "#dc3545",
-                  color: "white",
-                  padding: "8px 16px",
-                  border: "none",
-                  borderRadius: "6px",
-                  cursor: deleting ? "not-allowed" : "pointer",
-                  opacity: deleting ? 0.7 : 1,
-                }}
               >
                 {deleting ? "Deleting..." : "Yes, Permanently Delete"}
               </button>

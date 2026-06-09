@@ -54,11 +54,11 @@ export default function Topbar({ onToggle }) {
       </div> */}
 
       <div className="topbar-actions" ref={dropdownRef}>
-        <FaBell 
+        {/* <FaBell 
           role="button"
           tabIndex={0}
           aria-label="Notifications"
-        />
+        /> */}
 
         {/* USER AVATAR */}
         <div 

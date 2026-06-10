@@ -23,6 +23,7 @@ import PaymentFailedPage from "./pages/Payment/PaymentFailedPage.jsx";
 import PaymentSuccessPage from "./pages/Payment/PaymentSuccessPage.jsx";
 import ProductBooking from "./pages/ProductBooking/ProductBooking.jsx";
 import AdvertisementManagement from "./pages/Advertisements/AdvertisementManagement.jsx";
+import PublicStaticPage from "./pages/StaticContent/PublicStaticPages.jsx";
 
 export default function App() {
   return (
@@ -34,6 +35,9 @@ export default function App() {
         <Route path="/" element={<Login />} />
         <Route path="/payment-failed" element={<PaymentFailedPage />} />
         <Route path="/payment-success" element={<PaymentSuccessPage />} />
+        <Route path="/about" element={<PublicStaticPage pageType="about" />} />
+        <Route path="/privacy" element={<PublicStaticPage pageType="privacy" />} />
+        <Route path="/terms" element={<PublicStaticPage pageType="terms" />} />
 
         {/* PROTECTED */}
         <Route element={<ProtectedRoute />}>

@@ -62,7 +62,7 @@ export default function DeleteAccount() {
             <span className="brand-name">Ardhal Madina</span>
           </div>
 
-          <div className="navbar-links">
+          {/* <div className="navbar-links">
             <button className="nav-item" onClick={() => navigate("/about")}>
               About Us
             </button>
@@ -72,7 +72,7 @@ export default function DeleteAccount() {
             <button className="nav-item" onClick={() => navigate("/terms")}>
               Terms & Conditions
             </button>
-          </div>
+          </div> */}
         </div>
       </nav>
 

@@ -24,6 +24,7 @@ import PaymentSuccessPage from "./pages/Payment/PaymentSuccessPage.jsx";
 import ProductBooking from "./pages/ProductBooking/ProductBooking.jsx";
 import AdvertisementManagement from "./pages/Advertisements/AdvertisementManagement.jsx";
 import PublicStaticPage from "./pages/StaticContent/PublicStaticPages.jsx";
+import DeleteAccount from "./pages/DeleteAccount/DeleteAccount.jsx";
 
 export default function App() {
   return (
@@ -38,6 +39,7 @@ export default function App() {
         <Route path="/about" element={<PublicStaticPage pageType="about" />} />
         <Route path="/privacy" element={<PublicStaticPage pageType="privacy" />} />
         <Route path="/terms" element={<PublicStaticPage pageType="terms" />} />
+        <Route path="/delete-account" element={<DeleteAccount />} />
 
         {/* PROTECTED */}
         <Route element={<ProtectedRoute />}>

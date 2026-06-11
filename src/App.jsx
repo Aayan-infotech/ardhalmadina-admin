@@ -25,6 +25,7 @@ import ProductBooking from "./pages/ProductBooking/ProductBooking.jsx";
 import AdvertisementManagement from "./pages/Advertisements/AdvertisementManagement.jsx";
 import PublicStaticPage from "./pages/StaticContent/PublicStaticPages.jsx";
 import DeleteAccount from "./pages/DeleteAccount/DeleteAccount.jsx";
+import RequestManagement from "./pages/RequestManagement/RequestManagement.jsx";
 
 export default function App() {
   return (
@@ -64,6 +65,7 @@ export default function App() {
             <Route path="/faq" element={<Faq />} />
             <Route path="/requirements" element={<Requirements />} />
             <Route path="/order-management" element={<OrderManagement />} />
+            <Route path="/request-management" element={<RequestManagement />} />
             <Route path="/advertisement" element={<AdvertisementManagement />} />
             <Route path="/product-booking" element={<ProductBooking />} />
           </Route>

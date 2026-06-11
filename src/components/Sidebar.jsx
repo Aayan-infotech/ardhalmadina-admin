@@ -50,6 +50,7 @@ export default function Sidebar({ collapsed, onClose }) {
   const [staticOpen, setStaticOpen] = useState(false);
   const [orderOpen, setOrderOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
+  const [requestOpen, setRequestOpen] = useState(false);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -292,6 +293,32 @@ export default function Sidebar({ collapsed, onClose }) {
               <FaHourglassHalf className="submenu-icon" />
               Listing Orders
             </NavLink> */}
+          </div>
+        )}
+        {/* REQUEST MANAGEMENT DROPDOWN */}
+        <div
+          className={`menu-item dropdown ${requestOpen ? "open" : ""}`}
+          onClick={() => !collapsed && setRequestOpen(!requestOpen)}
+        >
+          <FaTools />
+          {!collapsed && (
+            <>
+              <span>Request Management</span>
+              <FaChevronDown className="dropdown-icon" />
+            </>
+          )}
+        </div>
+
+        {requestOpen && !collapsed && (
+          <div className="submenu">
+            <NavLink
+              to="/request-management"
+              className="submenu-item"
+              onClick={handleNavClick}
+            >
+              <FaClipboardList className="submenu-icon" />
+              Request Management
+            </NavLink>
           </div>
         )}
       </nav>

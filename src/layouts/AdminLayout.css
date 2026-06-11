@@ -72,6 +72,12 @@
   white-space: nowrap;
 }
 
+.menu-item > svg {
+  font-size: 18px;
+  min-width: 18px;
+  display: inline-block;
+}
+
 .menu-item.active,
 .menu-item:hover {
   background: rgba(255, 255, 255, 0.2);

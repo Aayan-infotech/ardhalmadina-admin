@@ -167,7 +167,6 @@ export default function RequestManagement() {
       setLoading(false);
     }
   };
-
   const handleOpenActionModal = (request, action) => {
     setSelectedRequest(request);
     setModalAction(action);

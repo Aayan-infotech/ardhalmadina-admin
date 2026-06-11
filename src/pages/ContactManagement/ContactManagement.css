@@ -1,0 +1,99 @@
+/* ContactManagement.css */
+@import "../RequestManagement/RequestManagement.css";
+
+.contact-management-container {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  font-family:
+    "Inter",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    Roboto,
+    sans-serif;
+  padding: 24px;
+}
+
+.inquiries-table-details {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.inquiries-table-details thead th {
+  background: #2c8769;
+  padding: 16px 18px;
+  text-align: left;
+  font-weight: 600;
+  color: white;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.inquiries-table-details tbody tr {
+  border-bottom: 1px solid #f0f2f5;
+  transition: background 0.2s;
+}
+
+.inquiries-table-details tbody tr:hover {
+  background: #fdfdfd;
+}
+
+.inquiries-table-details td {
+  padding: 16px 18px;
+  vertical-align: middle;
+}
+
+.req-message-txt {
+  color: #475569;
+  line-height: 1.5;
+  font-size: 0.85rem;
+}
+
+/* Status Badges */
+.inquiry-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 40px;
+  font-weight: 600;
+  font-size: 0.7rem;
+  text-transform: capitalize;
+}
+
+/* Responsive Table Styling */
+@media (max-width: 768px) {
+  .inquiries-table-details thead {
+    display: none;
+  }
+  .inquiries-table-details tbody tr {
+    display: block;
+    margin-bottom: 16px;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 10px;
+  }
+  .inquiries-table-details td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f1f5f9;
+    padding: 8px 12px;
+    text-align: right;
+  }
+  .inquiries-table-details td:last-child {
+    border-bottom: none;
+  }
+  .inquiries-table-details td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    float: left;
+    text-align: left;
+  }
+}

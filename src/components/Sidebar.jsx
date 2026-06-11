@@ -35,6 +35,7 @@ import {
   FaBoxOpen ,
   FaMoneyBillWave,
   FaAd,
+  FaEnvelope,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
@@ -51,6 +52,7 @@ export default function Sidebar({ collapsed, onClose }) {
   const [orderOpen, setOrderOpen] = useState(false);
   const [paymentOpen, setPaymentOpen] = useState(false);
   const [requestOpen, setRequestOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
 
   // Check if mobile on mount and resize
   useEffect(() => {
@@ -318,6 +320,32 @@ export default function Sidebar({ collapsed, onClose }) {
             >
               <FaClipboardList className="submenu-icon" />
               Request Management
+            </NavLink>
+          </div>
+        )}
+        {/* CONTACT MANAGEMENT DROPDOWN */}
+        <div
+          className={`menu-item dropdown ${contactOpen ? "open" : ""}`}
+          onClick={() => !collapsed && setContactOpen(!contactOpen)}
+        >
+          <FaEnvelope />
+          {!collapsed && (
+            <>
+              <span>Contact Management</span>
+              <FaChevronDown className="dropdown-icon" />
+            </>
+          )}
+        </div>
+
+        {contactOpen && !collapsed && (
+          <div className="submenu">
+            <NavLink
+              to="/contact-management"
+              className="submenu-item"
+              onClick={handleNavClick}
+            >
+              <FaClipboardList className="submenu-icon" />
+              Contact Inquiries
             </NavLink>
           </div>
         )}

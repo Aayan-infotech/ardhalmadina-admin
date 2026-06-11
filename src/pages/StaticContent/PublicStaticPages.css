@@ -272,10 +272,10 @@
 
 /* FOOTER */
 .public-footer {
-  background-color: #0f172a;
-  color: #94a3b8;
+  background-color: #ffffff;
+  color: #64748b;
   padding: 24px 24px;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid #e2e8f0;
   margin-top: auto;
 }
 
@@ -306,7 +306,7 @@
 }
 
 .footer-links span:hover {
-  color: white;
+  color: #236b52;
 }
 
 /* RESPONSIVE DESIGN */

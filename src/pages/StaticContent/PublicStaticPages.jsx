@@ -83,6 +83,12 @@ export default function PublicStaticPage({ pageType }) {
             >
               Terms & Conditions
             </button>
+            <button
+              className="nav-item"
+              onClick={() => navigate("/contact")}
+            >
+              Contact Us
+            </button>
           </div>
 
         </div>
@@ -127,6 +133,7 @@ export default function PublicStaticPage({ pageType }) {
             <span onClick={() => navigate("/about")}>About Us</span>
             <span onClick={() => navigate("/privacy")}>Privacy Policy</span>
             <span onClick={() => navigate("/terms")}>Terms & Conditions</span>
+            <span onClick={() => navigate("/contact")}>Contact Us</span>
           </div>
         </div>
       </footer>

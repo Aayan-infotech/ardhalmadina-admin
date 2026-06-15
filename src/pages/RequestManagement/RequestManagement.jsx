@@ -21,7 +21,7 @@ export default function RequestManagement() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
-  const [filtersVisible, setFiltersVisible] = useState(false);
+  const [filtersVisible, setFiltersVisible] = useState(false);              
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [updatingRequestId, setUpdatingRequestId] = useState(null);

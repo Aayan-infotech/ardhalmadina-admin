@@ -47,6 +47,25 @@
   font-size: 14px;
 }
 
+.reorder-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: linear-gradient(135deg, #f1fbf7, #e0f4ec);
+  border: 1px solid #b7ddcf;
+  border-radius: 12px;
+  color: #245746;
+  font-size: 14px;
+}
+
+.reorder-status {
+  font-weight: 700;
+  color: #2c8769;
+}
+
 .btn-add {
   background: #2c8769;
   color: white;
@@ -113,6 +132,73 @@
 .image-cell {
   padding: 16px;
   width: 100px;
+}
+
+.sequence-cell {
+  padding: 16px;
+  min-width: 180px;
+}
+
+.sequence-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6c757d;
+  cursor: grab;
+  font-size: 16px;
+}
+
+.drag-handle.disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.sequence-value {
+  min-width: 28px;
+  text-align: center;
+  font-weight: 700;
+  color: #2c3e50;
+}
+
+.sequence-buttons {
+  display: flex;
+  gap: 6px;
+}
+
+.sequence-btn {
+  width: 30px;
+  height: 30px;
+  border: 1px solid #d6dde5;
+  border-radius: 8px;
+  background: #fff;
+  color: #2c8769;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sequence-btn:hover:not(:disabled) {
+  background: #2c8769;
+  border-color: #2c8769;
+  color: #fff;
+}
+
+.sequence-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.dragging-row {
+  opacity: 0.6;
+  background: #f1fbf7;
 }
 
 .subcategory-image {

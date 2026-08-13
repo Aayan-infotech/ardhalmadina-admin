@@ -64,6 +64,7 @@ const getStatusClass = (status) => {
 
 export default function VehicleManagement() {
   const [items, setItems] = useState([]);
+  const [totalItemsCount, setTotalItemsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
@@ -127,6 +128,9 @@ export default function VehicleManagement() {
 
       let url = `/listings/admin/listings?`;
       const params = new URLSearchParams();
+
+      params.append("page", currentPage);
+      params.append("limit", perPage);
 
       if (categoryFilter !== "all") {
         params.append("listingCategory", categoryFilter);
@@ -263,9 +267,15 @@ export default function VehicleManagement() {
         });
 
         setItems(transformedListings);
-        setCurrentPage(1);
+        const apiTotalCount =
+          result.pagination?.totalCount ??
+          result.pagination?.total ??
+          result.total ??
+          transformedListings.length;
+        setTotalItemsCount(apiTotalCount);
       }
     } catch (error) {
+      setTotalItemsCount(0);
       toast.error("Error loading listings");
       console.error("Fetch error:", error);
     } finally {
@@ -419,7 +429,7 @@ export default function VehicleManagement() {
   const filteredItems = items.filter(
     (item) => statusFilter === "all" || item.status === statusFilter,
   );
-  const totalItems = filteredItems.length;
+  const totalItems = totalItemsCount;
   const availableCount = filteredItems.filter(
     (v) => v.status === "active",
   ).length;
@@ -430,11 +440,8 @@ export default function VehicleManagement() {
     (v) => v.status === "blocked",
   ).length;
 
-  const totalPages = Math.ceil(filteredItems.length / perPage);
-  const currentItems = filteredItems.slice(
-    (currentPage - 1) * perPage,
-    currentPage * perPage,
-  );
+  const totalPages = Math.max(1, Math.ceil(totalItemsCount / perPage));
+  const currentItems = filteredItems;
 
   useEffect(() => {
     loadCategories();
@@ -442,7 +449,13 @@ export default function VehicleManagement() {
 
   useEffect(() => {
     fetchVehicles();
-  }, [categoryFilter, listingTypeFilter, statusFilter, debouncedSearchTerm]);
+  }, [
+    categoryFilter,
+    listingTypeFilter,
+    statusFilter,
+    debouncedSearchTerm,
+    currentPage,
+  ]);
 
   useEffect(() => {
     setCurrentPage(1);

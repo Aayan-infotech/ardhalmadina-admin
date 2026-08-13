@@ -12,6 +12,9 @@ import {
   FaSearch,
   FaUpload,
   FaTrashAlt,
+  FaArrowUp,
+  FaArrowDown,
+  FaGripVertical,
 } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
 import { toast, ToastContainer } from "react-toastify";
@@ -41,6 +44,8 @@ export default function SubcategoryManagement() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(false);
+  const [savingSequence, setSavingSequence] = useState(false);
+  const [draggedSubcategoryId, setDraggedSubcategoryId] = useState(null);
 
   const [addError, setAddError] = useState("");
   const [editError, setEditError] = useState("");
@@ -109,12 +114,28 @@ export default function SubcategoryManagement() {
             : item.categoryId,
         name: item.name,
         image: item.image || PLACEHOLDER_IMAGE,
+        sequence: Number(item.sequence) || 0,
         isBlocked: item.status === "blocked" || item.isBlocked === true,
         status: item.status || (item.isBlocked ? "blocked" : "active"),
       }));
 
-      console.log("Transformed subcategories:", transformedData);
-      setSubcategories(transformedData);
+      const sortedData = [...transformedData].sort((a, b) => {
+        if (String(a.categoryId) !== String(b.categoryId)) {
+          return String(a.categoryId).localeCompare(String(b.categoryId));
+        }
+
+        const sequenceA = a.sequence || Number.MAX_SAFE_INTEGER;
+        const sequenceB = b.sequence || Number.MAX_SAFE_INTEGER;
+
+        if (sequenceA !== sequenceB) {
+          return sequenceA - sequenceB;
+        }
+
+        return a.name.localeCompare(b.name);
+      });
+
+      console.log("Transformed subcategories:", sortedData);
+      setSubcategories(sortedData);
     } catch (error) {
       console.error("Error fetching subcategories:", error);
       toast.error("Failed to load subcategories");
@@ -152,13 +173,17 @@ export default function SubcategoryManagement() {
     return matchesSearch && matchesCategory;
   });
 
+  const canReorder =
+    selectedCategory !== "all" && searchTerm.trim().length === 0;
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentItems = filteredSubcategories.slice(
-    indexOfFirstItem,
-    indexOfLastItem,
-  );
-  const totalPages = Math.ceil(filteredSubcategories.length / itemsPerPage);
+  const currentItems = canReorder
+    ? filteredSubcategories
+    : filteredSubcategories.slice(indexOfFirstItem, indexOfLastItem);
+  const totalPages = canReorder
+    ? 1
+    : Math.ceil(filteredSubcategories.length / itemsPerPage);
 
   const paginate = (pageNumber) => {
     if (pageNumber >= 1 && pageNumber <= totalPages) {
@@ -428,6 +453,197 @@ export default function SubcategoryManagement() {
     e.target.src = PLACEHOLDER_IMAGE;
   };
 
+  const isValidMongoId = (value) =>
+    typeof value === "string" && /^[a-fA-F0-9]{24}$/.test(value.trim());
+
+  const getNormalizedSubcategoryId = (subcategory) =>
+    String(subcategory?._id || subcategory?.id || "").trim();
+
+  const persistSequence = async (
+    categoryId,
+    previousSubcategories,
+    orderedSubcategories,
+  ) => {
+    setSavingSequence(true);
+
+    try {
+      const changedSubcategories = orderedSubcategories
+        .map((subcategory, index) => {
+          const normalizedId = getNormalizedSubcategoryId(subcategory);
+          const nextSequence = Number(index + 1);
+          const previousSequence =
+            previousSubcategories.find(
+              (previousSubcategory) =>
+                getNormalizedSubcategoryId(previousSubcategory) === normalizedId,
+            )?.sequence ?? 0;
+
+          return {
+            id: normalizedId,
+            sequence: nextSequence,
+            hasChanged: previousSequence !== nextSequence,
+          };
+        })
+        .filter((subcategory) => subcategory.hasChanged);
+
+      const invalidItem = changedSubcategories.find(
+        (subcategory) =>
+          !isValidMongoId(subcategory.id) ||
+          !Number.isInteger(subcategory.sequence) ||
+          subcategory.sequence < 1,
+      );
+
+      if (invalidItem) {
+        toast.error("Unable to save sequence because one subcategory id is invalid.");
+        await fetchSubcategories();
+        return;
+      }
+
+      for (const subcategory of changedSubcategories) {
+        await axiosInstance.patch("/subcategory/sequence", {
+          id: subcategory.id,
+          sequence: subcategory.sequence,
+        });
+      }
+
+      setSubcategories((prev) => {
+        const sequenceMap = new Map(
+          orderedSubcategories.map((subcategory, index) => [
+            subcategory.id,
+            index + 1,
+          ]),
+        );
+
+        return prev
+          .map((subcategory) =>
+            String(subcategory.categoryId) === String(categoryId)
+              ? {
+                  ...subcategory,
+                  sequence:
+                    sequenceMap.get(subcategory.id) || subcategory.sequence,
+                }
+              : subcategory,
+          )
+          .sort((a, b) => {
+            if (String(a.categoryId) !== String(b.categoryId)) {
+              return String(a.categoryId).localeCompare(String(b.categoryId));
+            }
+
+            return (a.sequence || 0) - (b.sequence || 0);
+          });
+      });
+
+      toast.success("Subcategory sequence updated successfully!");
+    } catch (error) {
+      console.error("Error updating subcategory sequence:", error);
+      toast.error(
+        error.response?.data?.message || "Failed to update subcategory sequence",
+      );
+      await fetchSubcategories();
+    } finally {
+      setSavingSequence(false);
+    }
+  };
+
+  const reorderSubcategoriesInCategory = async (categoryId, fromIndex, toIndex) => {
+    if (!canReorder || fromIndex === toIndex) return;
+
+    const categorySubcategories = filteredSubcategories;
+    if (
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= categorySubcategories.length ||
+      toIndex >= categorySubcategories.length
+    ) {
+      return;
+    }
+
+    const reorderedSubcategories = [...categorySubcategories];
+    const previousSubcategories = [...categorySubcategories];
+    const [movedSubcategory] = reorderedSubcategories.splice(fromIndex, 1);
+    reorderedSubcategories.splice(toIndex, 0, movedSubcategory);
+
+    setSubcategories((prev) => {
+      const sequenceMap = new Map(
+        reorderedSubcategories.map((subcategory, index) => [
+          subcategory.id,
+          index + 1,
+        ]),
+      );
+
+      return prev
+        .map((subcategory) =>
+          String(subcategory.categoryId) === String(categoryId)
+            ? {
+                ...subcategory,
+                sequence:
+                  sequenceMap.get(subcategory.id) || subcategory.sequence,
+              }
+            : subcategory,
+        )
+        .sort((a, b) => {
+          if (String(a.categoryId) !== String(b.categoryId)) {
+            return String(a.categoryId).localeCompare(String(b.categoryId));
+          }
+
+          return (a.sequence || 0) - (b.sequence || 0);
+        });
+    });
+
+    await persistSequence(
+      categoryId,
+      previousSubcategories,
+      reorderedSubcategories,
+    );
+  };
+
+  const moveSubcategory = async (subcategoryId, direction) => {
+    if (!canReorder || savingSequence) return;
+
+    const categorySubcategories = filteredSubcategories;
+    const currentIndex = categorySubcategories.findIndex(
+      (subcategory) => subcategory.id === subcategoryId,
+    );
+
+    if (currentIndex === -1) return;
+
+    const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (nextIndex < 0 || nextIndex >= categorySubcategories.length) return;
+
+    await reorderSubcategoriesInCategory(
+      selectedCategory,
+      currentIndex,
+      nextIndex,
+    );
+  };
+
+  const handleDragStart = (subcategoryId) => {
+    if (!canReorder || savingSequence) return;
+    setDraggedSubcategoryId(subcategoryId);
+  };
+
+  const handleDrop = async (targetSubcategoryId) => {
+    if (
+      !canReorder ||
+      savingSequence ||
+      !draggedSubcategoryId ||
+      draggedSubcategoryId === targetSubcategoryId
+    ) {
+      setDraggedSubcategoryId(null);
+      return;
+    }
+
+    const categorySubcategories = filteredSubcategories;
+    const fromIndex = categorySubcategories.findIndex(
+      (subcategory) => subcategory.id === draggedSubcategoryId,
+    );
+    const toIndex = categorySubcategories.findIndex(
+      (subcategory) => subcategory.id === targetSubcategoryId,
+    );
+
+    setDraggedSubcategoryId(null);
+    await reorderSubcategoriesInCategory(selectedCategory, fromIndex, toIndex);
+  };
+
   return (
     <div className="subcategory-container">
       <ToastContainer position="top-right" autoClose={3000} />
@@ -518,6 +734,16 @@ export default function SubcategoryManagement() {
         </div>
       </div>
 
+      {canReorder && (
+        <div className="reorder-banner">
+          <div>
+            Reorder mode is active for <strong>{getCategoryName(selectedCategory)}</strong>.
+            Drag rows or use the up/down buttons to change sequence.
+          </div>
+          {savingSequence && <span className="reorder-status">Saving...</span>}
+        </div>
+      )}
+
       <div className="content-wrapper">
         {/* Table Section */}
         <div className="table-responsive">
@@ -532,6 +758,7 @@ export default function SubcategoryManagement() {
                 <thead>
                   <tr>
                     <th>#</th>
+                    <th>Sequence</th>
                     <th>Image</th>
                     <th>Subcategory Name</th>
                     <th>Category</th>
@@ -542,9 +769,65 @@ export default function SubcategoryManagement() {
                 <tbody>
                   {currentItems.length > 0 ? (
                     currentItems.map((subcategory, index) => (
-                      <tr key={subcategory.id}>
+                      <tr
+                        key={subcategory.id}
+                        draggable={canReorder && !savingSequence}
+                        onDragStart={() => handleDragStart(subcategory.id)}
+                        onDragOver={(e) => {
+                          if (canReorder) {
+                            e.preventDefault();
+                          }
+                        }}
+                        onDrop={() => handleDrop(subcategory.id)}
+                        className={
+                          draggedSubcategoryId === subcategory.id
+                            ? "dragging-row"
+                            : ""
+                        }
+                      >
                         <td className="sr-cell">
-                          {indexOfFirstItem + index + 1}
+                          {canReorder ? index + 1 : indexOfFirstItem + index + 1}
+                        </td>
+                        <td className="sequence-cell">
+                          <div className="sequence-controls">
+                            <span
+                              className={`drag-handle ${canReorder ? "" : "disabled"}`}
+                              title={
+                                canReorder
+                                  ? "Drag to reorder"
+                                  : "Select one category and clear search to reorder"
+                              }
+                            >
+                              <FaGripVertical />
+                            </span>
+                            <span className="sequence-value">
+                              {subcategory.sequence || index + 1}
+                            </span>
+                            <div className="sequence-buttons">
+                              <button
+                                className="sequence-btn"
+                                onClick={() => moveSubcategory(subcategory.id, "up")}
+                                disabled={!canReorder || savingSequence || index === 0}
+                                title="Move up"
+                              >
+                                <FaArrowUp />
+                              </button>
+                              <button
+                                className="sequence-btn"
+                                onClick={() =>
+                                  moveSubcategory(subcategory.id, "down")
+                                }
+                                disabled={
+                                  !canReorder ||
+                                  savingSequence ||
+                                  index === currentItems.length - 1
+                                }
+                                title="Move down"
+                              >
+                                <FaArrowDown />
+                              </button>
+                            </div>
+                          </div>
                         </td>
                         <td className="image-cell">
                           <img
@@ -634,7 +917,7 @@ export default function SubcategoryManagement() {
                     ))
                   ) : (
                     <tr className="empty-row">
-                      <td colSpan="6">
+                      <td colSpan="7">
                         <div className="empty-state">
                           <FaExclamationTriangle className="empty-icon" />
                           <p>No subcategories found</p>
@@ -652,7 +935,7 @@ export default function SubcategoryManagement() {
               </table>
 
               {/* Pagination Section */}
-              {filteredSubcategories.length > 0 && (
+              {!canReorder && filteredSubcategories.length > 0 && (
                 <div className="pagination-container">
                   <div className="pagination-controls">
                     <button

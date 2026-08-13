@@ -353,11 +353,6 @@ export default function Sidebar({ collapsed, onClose }) {
 
       {/* BOTTOM */}
       <div className="sidebar-bottom">
-        <div className="menu-item">
-          <FaCog />
-          {!collapsed && <span>Settings</span>}
-        </div>
-
         {!collapsed && (
           <button className="impressum-btn" onClick={handleLogout}>
             Logout

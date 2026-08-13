@@ -11,7 +11,10 @@ import {
   FaCheckCircle,
   FaSearch,
   FaArrowLeft,
+  FaArrowUp,
+  FaArrowDown,
   FaImage,
+  FaGripVertical,
   FaUpload,
 } from "react-icons/fa";
 import "bootstrap/dist/css/bootstrap.min.css";
@@ -34,6 +37,8 @@ export default function ListingCategory() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [loading, setLoading] = useState(false);
+  const [savingSequence, setSavingSequence] = useState(false);
+  const [draggedCategoryId, setDraggedCategoryId] = useState(null);
   const [addError, setAddError] = useState("");
   const [editError, setEditError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
@@ -61,12 +66,25 @@ export default function ListingCategory() {
 
       const formattedCategories = categoriesData.map((cat) => ({
         id: cat._id,
+        _id: cat._id,
         name: cat.name,
         description: cat.description || "",
+        sequence: Number(cat.sequence) || 0,
         isBlocked: cat.status === "blocked",
         image: cat.image || null,
       }));
-      setCategories(formattedCategories);
+      setCategories(
+        formattedCategories.sort((a, b) => {
+          const sequenceA = a.sequence || Number.MAX_SAFE_INTEGER;
+          const sequenceB = b.sequence || Number.MAX_SAFE_INTEGER;
+
+          if (sequenceA !== sequenceB) {
+            return sequenceA - sequenceB;
+          }
+
+          return a.name.localeCompare(b.name);
+        }),
+      );
     } catch (error) {
       console.error("Error fetching categories:", error);
       if (error.response?.status === 401) {
@@ -101,16 +119,17 @@ export default function ListingCategory() {
     );
   });
 
+  const canReorder = !searchTerm.trim() && !selectedCategory;
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
 
-  const currentItems = filteredCategories.slice(
-    indexOfFirstItem,
-    indexOfLastItem,
-  );
+  const currentItems = canReorder
+    ? filteredCategories
+    : filteredCategories.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.max(
     1,
-    Math.ceil(filteredCategories.length / itemsPerPage),
+    canReorder ? 1 : Math.ceil(filteredCategories.length / itemsPerPage),
   );
 
   useEffect(() => {
@@ -393,6 +412,159 @@ export default function ListingCategory() {
     }
   };
 
+  const isValidMongoId = (value) =>
+    typeof value === "string" && /^[a-fA-F0-9]{24}$/.test(value.trim());
+
+  const getNormalizedCategoryId = (category) =>
+    String(category?._id || category?.id || "").trim();
+
+  const persistSequence = async (previousCategories, orderedCategories) => {
+    setSavingSequence(true);
+
+    try {
+      const changedCategories = orderedCategories
+        .map((category, index) => {
+          const normalizedId = getNormalizedCategoryId(category);
+          const nextSequence = Number(index + 1);
+          const previousSequence =
+            previousCategories.find(
+              (previousCategory) =>
+                getNormalizedCategoryId(previousCategory) === normalizedId,
+            )?.sequence ?? 0;
+
+          return {
+            id: normalizedId,
+            sequence: nextSequence,
+            hasChanged: previousSequence !== nextSequence,
+          };
+        })
+        .filter((category) => category.hasChanged);
+
+      const invalidItem = changedCategories.find(
+        (category) =>
+          !isValidMongoId(category.id) ||
+          !Number.isInteger(category.sequence) ||
+          category.sequence < 1,
+      );
+
+      if (invalidItem) {
+        showSuccessMessage("Unable to save sequence because one category id is invalid.");
+        await fetchCategories();
+        return;
+      }
+
+      for (const category of changedCategories) {
+        await axiosInstance.patch("/category/sequence", {
+          id: category.id,
+          sequence: category.sequence,
+        });
+      }
+
+      setCategories((prev) => {
+        const sequenceMap = new Map(
+          orderedCategories.map((category, index) => [
+            category.id,
+            index + 1,
+          ]),
+        );
+
+        return prev
+          .map((category) => ({
+            ...category,
+            sequence: sequenceMap.get(category.id) || category.sequence,
+          }))
+          .sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+      });
+
+      showSuccessMessage("Category sequence updated successfully!");
+    } catch (error) {
+      console.error("Error updating category sequence:", error);
+      showSuccessMessage(
+        error.response?.data?.message || "Failed to update category sequence",
+      );
+      await fetchCategories();
+    } finally {
+      setSavingSequence(false);
+    }
+  };
+
+  const reorderCategories = async (fromIndex, toIndex) => {
+    if (!canReorder || fromIndex === toIndex) return;
+
+    const visibleCategories = filteredCategories;
+    if (
+      fromIndex < 0 ||
+      toIndex < 0 ||
+      fromIndex >= visibleCategories.length ||
+      toIndex >= visibleCategories.length
+    ) {
+      return;
+    }
+
+    const previousCategories = [...visibleCategories];
+    const reorderedCategories = [...visibleCategories];
+    const [movedCategory] = reorderedCategories.splice(fromIndex, 1);
+    reorderedCategories.splice(toIndex, 0, movedCategory);
+
+    setCategories((prev) => {
+      const sequenceMap = new Map(
+        reorderedCategories.map((category, index) => [category.id, index + 1]),
+      );
+
+      return prev
+        .map((category) => ({
+          ...category,
+          sequence: sequenceMap.get(category.id) || category.sequence,
+        }))
+        .sort((a, b) => (a.sequence || 0) - (b.sequence || 0));
+    });
+
+    await persistSequence(previousCategories, reorderedCategories);
+  };
+
+  const moveCategory = async (categoryId, direction) => {
+    if (!canReorder || savingSequence) return;
+
+    const visibleCategories = filteredCategories;
+    const currentIndex = visibleCategories.findIndex(
+      (category) => category.id === categoryId,
+    );
+    if (currentIndex === -1) return;
+
+    const nextIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (nextIndex < 0 || nextIndex >= visibleCategories.length) return;
+
+    await reorderCategories(currentIndex, nextIndex);
+  };
+
+  const handleDragStart = (categoryId) => {
+    if (!canReorder || savingSequence) return;
+    setDraggedCategoryId(categoryId);
+  };
+
+  const handleDrop = async (targetCategoryId) => {
+    if (
+      !canReorder ||
+      savingSequence ||
+      !draggedCategoryId ||
+      draggedCategoryId === targetCategoryId
+    ) {
+      setDraggedCategoryId(null);
+      return;
+    }
+
+    const visibleCategories = filteredCategories;
+    const fromIndex = visibleCategories.findIndex(
+      (category) => category.id === draggedCategoryId,
+    );
+    const toIndex = visibleCategories.findIndex(
+      (category) => category.id === targetCategoryId,
+    );
+
+    setDraggedCategoryId(null);
+    await reorderCategories(fromIndex, toIndex);
+  };
+
   return (
     <div className="category-container">
       {successMessage && (
@@ -481,6 +653,15 @@ export default function ListingCategory() {
         )}
       </div>
 
+      {canReorder && (
+        <div className="reorder-banner">
+          <div>
+            Reorder mode is active. Drag rows or use the up/down buttons to change category sequence.
+          </div>
+          {savingSequence && <span className="reorder-status">Saving...</span>}
+        </div>
+      )}
+
       <div className="content-wrapper">
         <div className="table-responsive">
           {loading || CategoryLoading ? (
@@ -496,6 +677,7 @@ export default function ListingCategory() {
                     <thead>
                       <tr>
                         <th>#</th>
+                        <th>Sequence</th>
                         <th>Image</th>
                         <th>Category Name</th>
                         <th>Description</th>
@@ -506,9 +688,63 @@ export default function ListingCategory() {
                     <tbody>
                       {currentItems.length > 0 ? (
                         currentItems.map((category, index) => (
-                          <tr key={category.id}>
+                          <tr
+                            key={category.id}
+                            draggable={canReorder && !savingSequence}
+                            onDragStart={() => handleDragStart(category.id)}
+                            onDragOver={(e) => {
+                              if (canReorder) {
+                                e.preventDefault();
+                              }
+                            }}
+                            onDrop={() => handleDrop(category.id)}
+                            className={
+                              draggedCategoryId === category.id
+                                ? "dragging-row"
+                                : ""
+                            }
+                          >
                             <td className="sr-cell">
-                              {indexOfFirstItem + index + 1}
+                              {canReorder ? index + 1 : indexOfFirstItem + index + 1}
+                            </td>
+                            <td className="sequence-cell">
+                              <div className="sequence-controls">
+                                <span
+                                  className={`drag-handle ${canReorder ? "" : "disabled"}`}
+                                  title={
+                                    canReorder
+                                      ? "Drag to reorder"
+                                      : "Clear search to reorder"
+                                  }
+                                >
+                                  <FaGripVertical />
+                                </span>
+                                <span className="sequence-value">
+                                  {category.sequence || index + 1}
+                                </span>
+                                <div className="sequence-buttons">
+                                  <button
+                                    className="sequence-btn"
+                                    onClick={() => moveCategory(category.id, "up")}
+                                    disabled={!canReorder || savingSequence || index === 0}
+                                    title="Move up"
+                                  >
+                                    <FaArrowUp />
+                                  </button>
+                                  <button
+                                    className="sequence-btn"
+                                    onClick={() => moveCategory(category.id, "down")}
+                                    disabled={
+                                      !canReorder ||
+                                      savingSequence ||
+                                      index === currentItems.length - 1
+                                    }
+                                    title="Move down"
+                                  >
+                                    <FaArrowDown />
+                                  </button>
+                                </div>
+                              </div>
                             </td>
                             <td className="image-cell">
                               {category.image ? (
@@ -611,7 +847,7 @@ export default function ListingCategory() {
                         ))
                       ) : (
                         <tr className="empty-row">
-                          <td colSpan="6">
+                          <td colSpan="7">
                             <div className="empty-state">
                               <FaExclamationTriangle className="empty-icon" />
                               <p>No categories found</p>
@@ -627,7 +863,7 @@ export default function ListingCategory() {
                       )}
                     </tbody>
                   </table>
-                  {filteredCategories.length > 0 && (
+                  {!canReorder && filteredCategories.length > 0 && (
                     <div className="pagination-container">
                       <div className="pagination-controls">
                         <button

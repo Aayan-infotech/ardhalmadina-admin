@@ -141,13 +141,15 @@ export default function SubcategoryManagement() {
 
       console.log("Processed categories data:", formattedCategories);
       setCategories(formattedCategories);
+      return formattedCategories;
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error("Failed to load categories");
+      return [];
     }
   };
 
-  const fetchSubcategories = async () => {
+  const fetchSubcategories = async (categoriesList = categories) => {
     setLoading(true);
     try {
       console.log("Fetching subcategories...");
@@ -185,7 +187,10 @@ export default function SubcategoryManagement() {
         status: item.status || (item.isBlocked ? "blocked" : "active"),
       }));
 
-      const sortedData = sortSubcategoriesByCategorySequence(transformedData);
+      const sortedData = sortSubcategoriesByCategorySequence(
+        transformedData,
+        categoriesList,
+      );
 
       console.log("Transformed subcategories:", sortedData);
       setSubcategories(sortedData);
@@ -198,8 +203,12 @@ export default function SubcategoryManagement() {
   };
 
   useEffect(() => {
-    fetchCategories();
-    fetchSubcategories();
+    const loadInitialData = async () => {
+      const categoriesData = await fetchCategories();
+      await fetchSubcategories(categoriesData);
+    };
+
+    loadInitialData();
   }, []);
 
   useEffect(() => {

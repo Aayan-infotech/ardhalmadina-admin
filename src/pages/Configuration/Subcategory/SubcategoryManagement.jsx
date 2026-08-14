@@ -53,6 +53,56 @@ export default function SubcategoryManagement() {
   const [successMessage, setSuccessMessage] = useState("");
   const [deleteConfirm, setDeleteConfirm] = useState(null);
 
+  const sortSubcategoriesByCategorySequence = (
+    subcategoriesToSort,
+    categoriesList = categories,
+  ) => {
+    const categoryMetaMap = new Map(
+      categoriesList.map((category) => [
+        String(category._id || category.id),
+        {
+          sequence: Number(category.sequence) || Number.MAX_SAFE_INTEGER,
+          name: category.name || "",
+        },
+      ]),
+    );
+
+    return [...subcategoriesToSort].sort((a, b) => {
+      const categoryA = categoryMetaMap.get(String(a.categoryId));
+      const categoryB = categoryMetaMap.get(String(b.categoryId));
+
+      const categorySequenceA = categoryA?.sequence ?? Number.MAX_SAFE_INTEGER;
+      const categorySequenceB = categoryB?.sequence ?? Number.MAX_SAFE_INTEGER;
+
+      if (categorySequenceA !== categorySequenceB) {
+        return categorySequenceA - categorySequenceB;
+      }
+
+      const categoryNameCompare = (categoryA?.name || "").localeCompare(
+        categoryB?.name || "",
+      );
+      if (categoryNameCompare !== 0) {
+        return categoryNameCompare;
+      }
+
+      const categoryIdCompare = String(a.categoryId).localeCompare(
+        String(b.categoryId),
+      );
+      if (categoryIdCompare !== 0) {
+        return categoryIdCompare;
+      }
+
+      const sequenceA = a.sequence || Number.MAX_SAFE_INTEGER;
+      const sequenceB = b.sequence || Number.MAX_SAFE_INTEGER;
+
+      if (sequenceA !== sequenceB) {
+        return sequenceA - sequenceB;
+      }
+
+      return a.name.localeCompare(b.name);
+    });
+  };
+
   const fetchCategories = async () => {
     try {
       console.log("Fetching categories...");
@@ -73,8 +123,24 @@ export default function SubcategoryManagement() {
         categoriesData = response.data.result;
       }
 
-      console.log("Processed categories data:", categoriesData);
-      setCategories(categoriesData);
+      const formattedCategories = categoriesData
+        .map((category) => ({
+          ...category,
+          sequence: Number(category.sequence) || 0,
+        }))
+        .sort((a, b) => {
+          const sequenceA = a.sequence || Number.MAX_SAFE_INTEGER;
+          const sequenceB = b.sequence || Number.MAX_SAFE_INTEGER;
+
+          if (sequenceA !== sequenceB) {
+            return sequenceA - sequenceB;
+          }
+
+          return (a.name || "").localeCompare(b.name || "");
+        });
+
+      console.log("Processed categories data:", formattedCategories);
+      setCategories(formattedCategories);
     } catch (error) {
       console.error("Error fetching categories:", error);
       toast.error("Failed to load categories");
@@ -119,20 +185,7 @@ export default function SubcategoryManagement() {
         status: item.status || (item.isBlocked ? "blocked" : "active"),
       }));
 
-      const sortedData = [...transformedData].sort((a, b) => {
-        if (String(a.categoryId) !== String(b.categoryId)) {
-          return String(a.categoryId).localeCompare(String(b.categoryId));
-        }
-
-        const sequenceA = a.sequence || Number.MAX_SAFE_INTEGER;
-        const sequenceB = b.sequence || Number.MAX_SAFE_INTEGER;
-
-        if (sequenceA !== sequenceB) {
-          return sequenceA - sequenceB;
-        }
-
-        return a.name.localeCompare(b.name);
-      });
+      const sortedData = sortSubcategoriesByCategorySequence(transformedData);
 
       console.log("Transformed subcategories:", sortedData);
       setSubcategories(sortedData);
@@ -148,6 +201,10 @@ export default function SubcategoryManagement() {
     fetchCategories();
     fetchSubcategories();
   }, []);
+
+  useEffect(() => {
+    setSubcategories((prev) => sortSubcategoriesByCategorySequence(prev));
+  }, [categories]);
 
   // Reset to first page when filters change
   useEffect(() => {
@@ -513,8 +570,8 @@ export default function SubcategoryManagement() {
           ]),
         );
 
-        return prev
-          .map((subcategory) =>
+        return sortSubcategoriesByCategorySequence(
+          prev.map((subcategory) =>
             String(subcategory.categoryId) === String(categoryId)
               ? {
                   ...subcategory,
@@ -522,14 +579,8 @@ export default function SubcategoryManagement() {
                     sequenceMap.get(subcategory.id) || subcategory.sequence,
                 }
               : subcategory,
-          )
-          .sort((a, b) => {
-            if (String(a.categoryId) !== String(b.categoryId)) {
-              return String(a.categoryId).localeCompare(String(b.categoryId));
-            }
-
-            return (a.sequence || 0) - (b.sequence || 0);
-          });
+          ),
+        );
       });
 
       toast.success("Subcategory sequence updated successfully!");
@@ -570,8 +621,8 @@ export default function SubcategoryManagement() {
         ]),
       );
 
-      return prev
-        .map((subcategory) =>
+      return sortSubcategoriesByCategorySequence(
+        prev.map((subcategory) =>
           String(subcategory.categoryId) === String(categoryId)
             ? {
                 ...subcategory,
@@ -579,14 +630,8 @@ export default function SubcategoryManagement() {
                   sequenceMap.get(subcategory.id) || subcategory.sequence,
               }
             : subcategory,
-        )
-        .sort((a, b) => {
-          if (String(a.categoryId) !== String(b.categoryId)) {
-            return String(a.categoryId).localeCompare(String(b.categoryId));
-          }
-
-          return (a.sequence || 0) - (b.sequence || 0);
-        });
+        ),
+      );
     });
 
     await persistSequence(

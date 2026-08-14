@@ -17,6 +17,7 @@ import axiosInstance from "../../../utils/axiosInstance";
 
 export default function UserList() {
   const [users, setUsers] = useState([]);
+  const [totalUsers, setTotalUsers] = useState(0);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUser, setSelectedUser] = useState(null);
@@ -57,7 +58,13 @@ export default function UserList() {
     try {
       setLoading(true);
 
-      const response = await axiosInstance.get("/admin/users/getAll");
+      const response = await axiosInstance.get("/admin/users/getAll", {
+        params: {
+          page: currentPage,
+          limit: perPage,
+          search: searchTerm,
+        },
+      });
 
       const data = response.data;
 
@@ -88,6 +95,9 @@ export default function UserList() {
       }));
 
       setUsers(formattedUsers);
+      setTotalUsers(
+        data.pagination?.totalCount || data.total || formattedUsers.length,
+      );
       setError("");
     } catch (err) {
       console.error("Error fetching users:", err);
@@ -100,15 +110,15 @@ export default function UserList() {
       }
 
       setUsers([]);
+      setTotalUsers(0);
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial fetch on component mount
   useEffect(() => {
     fetchUsers();
-  }, []);
+  }, [currentPage, searchTerm]);
 
   // Block/Unblock user using updateStatus API
   const toggleBlock = async (id) => {
@@ -198,13 +208,16 @@ export default function UserList() {
   );
 
   // Pagination Logic
-  const totalRecords = filteredUsers.length;
-  const totalPages = Math.ceil(totalRecords / perPage);
+  const totalRecords = totalUsers || filteredUsers.length;
+  const totalPages = Math.max(1, Math.ceil(totalRecords / perPage));
 
-  const currentUsers = filteredUsers.slice(
-    (currentPage - 1) * perPage,
-    currentPage * perPage,
-  );
+  const currentUsers =
+    totalRecords > filteredUsers.length
+      ? filteredUsers
+      : filteredUsers.slice(
+          (currentPage - 1) * perPage,
+          currentPage * perPage,
+        );
 
   // Reset to first page when search changes
   useEffect(() => {

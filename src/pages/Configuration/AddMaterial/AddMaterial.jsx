@@ -1087,6 +1087,7 @@ export default function MaterialList() {
                         required
                       >
                         <option value="perUnit">Per Unit</option>
+                        <option value="perTon">Per Unit</option>
                         <option value="perKg">Per Kg</option>
                         <option value="perMeter">Per Meter</option>
                         <option value="perSquareFoot">Per Square Foot</option>

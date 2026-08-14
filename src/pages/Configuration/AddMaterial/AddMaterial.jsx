@@ -693,6 +693,8 @@ export default function MaterialList() {
     switch (unit) {
       case "perUnit":
         return "Per Unit";
+      case "perTon":
+        return "Per Ton";
       case "perKg":
         return "Per Kg";
       case "perMeter":
@@ -1087,7 +1089,7 @@ export default function MaterialList() {
                         required
                       >
                         <option value="perUnit">Per Unit</option>
-                        <option value="perTon">Per Unit</option>
+                        <option value="perTon">Per Ton</option>
                         <option value="perKg">Per Kg</option>
                         <option value="perMeter">Per Meter</option>
                         <option value="perSquareFoot">Per Square Foot</option>
@@ -1364,6 +1366,7 @@ export default function MaterialList() {
                     }
                   >
                     <option value="perUnit">Per Unit</option>
+                    <option value="perTon">Per Ton</option>
                     <option value="perKg">Per Kg</option>
                     <option value="perMeter">Per Meter</option>
                     <option value="perSquareFoot">Per Square Foot</option>

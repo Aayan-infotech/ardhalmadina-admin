@@ -863,7 +863,7 @@ export default function MaterialList() {
                       </td>
                       <td>{material.supplier}</td>
                       <td className="price-text">
-                        ₹{material.price}{" "}
+                        AED {material.price}{" "}
                         <span style={{ fontSize: "11px", color: "#666" }}>
                           ({getPriceUnitLabel(material.priceUnit)})
                         </span>
@@ -1150,11 +1150,11 @@ export default function MaterialList() {
                     />
                     <small className="form-hint">
                       💡 Start typing to see suggestions from Google Maps
-                    </small>
+    </small>
                   </div>
 
                   <div className="input-group full-width">
-                    <label htmlFor="coordinates">Coordinates * (lon,lat)</label>
+                    <label htmlFor="coordinates">Coordinate                s * (lon,lat)</label>
                     <input
                       id="coordinates"
                       type="text"
@@ -1597,7 +1597,7 @@ export default function MaterialList() {
                 <div>
                   <label>Price</label>
                   <p>
-                    ₹{selectedMaterial.price}{" "}
+                    AED {selectedMaterial.price}{" "}
                     <span style={{ fontSize: "12px", color: "#666" }}>
                       ({getPriceUnitLabel(selectedMaterial.priceUnit)})
                     </span>

@@ -110,9 +110,9 @@ export default function OrderManagement() {
       : "N/A";
 
   const formatPrice = (price) =>
-    new Intl.NumberFormat("en-IN", {
+    new Intl.NumberFormat("en-AE", {
       style: "currency",
-      currency: "INR",
+      currency: "AED",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(price);

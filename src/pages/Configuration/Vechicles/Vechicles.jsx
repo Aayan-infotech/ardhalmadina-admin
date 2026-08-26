@@ -1054,11 +1054,11 @@ export default function VehicleManagement() {
                       </td>
                       <td>
                         {item.listingType === "rent"
-                          ? `₹${item.dailyRate.toLocaleString()}/day`
-                          : `₹${item.sellingPrice.toLocaleString()}`}
+                          ? `AED ${item.dailyRate.toLocaleString()}/day`
+                          : `AED ${item.sellingPrice.toLocaleString()}`}
                         {item.listingType === "rent" && item.weeklyRate > 0 && (
                           <div style={{ fontSize: "11px", color: "#666" }}>
-                            Week: ₹{item.weeklyRate.toLocaleString()}
+                            Week: AED {item.weeklyRate.toLocaleString()}
                           </div>
                         )}
                       </td>
@@ -1331,25 +1331,25 @@ export default function VehicleManagement() {
                   {selectedItem.listingType === "rent" ? (
                     <>
                       <div>
-                        <strong>Daily Rate:</strong> ₹
+                        <strong>Daily Rate:</strong> AED{" "}
                         {selectedItem.dailyRate?.toLocaleString()}/day
                       </div>
                       {selectedItem.weeklyRate > 0 && (
                         <div>
-                          <strong>Weekly Rate:</strong> ₹
+                          <strong>Weekly Rate:</strong> AED{" "}
                           {selectedItem.weeklyRate?.toLocaleString()}/week
                         </div>
                       )}
                       {selectedItem.monthlyRate > 0 && (
                         <div>
-                          <strong>Monthly Rate:</strong> ₹
+                          <strong>Monthly Rate:</strong> AED{" "}
                           {selectedItem.monthlyRate?.toLocaleString()}/month
                         </div>
                       )}
                     </>
                   ) : (
                     <div>
-                      <strong>Selling Price:</strong> ₹
+                      <strong>Selling Price:</strong> AED{" "}
                       {selectedItem.sellingPrice?.toLocaleString()}
                     </div>
                   )}

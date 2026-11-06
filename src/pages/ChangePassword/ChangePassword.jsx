@@ -5,7 +5,7 @@ import "./ChangePassword.css";
 
 export default function ChangePassword() {
   const navigate = useNavigate();
-  const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const BASE_URL = "http://187.127.189.2:9090/";
 
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");

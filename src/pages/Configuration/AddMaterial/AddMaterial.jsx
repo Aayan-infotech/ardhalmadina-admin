@@ -92,7 +92,7 @@ export default function MaterialList() {
   // LOAD GOOGLE MAPS
   // =========================
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    const apiKey = "AIzaSyByeL4973jLw5-DqyPtVl79I3eDN4uAuAQ";
     if (apiKey) {
       loadGoogleMapsScript(apiKey)
         .then(() => {

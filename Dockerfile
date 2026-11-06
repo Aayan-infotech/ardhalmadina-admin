@@ -16,6 +16,6 @@ COPY --from=build /usr/src/app/dist /usr/share/nginx/html
 # Custom Nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 8687
+EXPOSE 9091
 
 CMD ["nginx", "-g", "daemon off;"]

@@ -1,7 +1,10 @@
 // axiosInstance.js
 import axios from "axios";
 
-const API_BASE_URL = "http://187.127.189.2:9090/api/";
+// Vite Environment Variable
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL ||
+  "https://api.ardhalmadina.com/api";
 
 const axiosInstance = axios.create({
   baseURL: API_BASE_URL,
